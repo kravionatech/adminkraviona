@@ -20,6 +20,10 @@ import CommentsPage from "./Page/Comments/Comments";
 import MediaLibrary from "./Page/MediaLibrary/MediaLibrary";
 import Notifications from "./Page/Notifications/Notifications";
 import NewsletterSection from "./Page/NewsLetters/NewsLetter";
+import ContentDecay from "./Page/ManagePost/ContentDecay";
+import Services from "./Page/Services/Services";
+import CampaignsPage from "./Page/Campaigns/Campaigns";
+import GlobalSettingsPage from "./Page/GlobalSetting/Globalsettingspage";
 
 // ─── TEMPORARY PLACEHOLDER COMPONENT ──────────────────────────────
 // Ye un routes ke liye hai jinke components abhi aane baaki hain.
@@ -57,10 +61,10 @@ const App = () => {
             <Route path="/dashboard/blog/new" element={<AddPost />} />
             <Route path="/dashboard/categories" element={<CategoriesPage />} />
             <Route path="/dashboard/comments" element={<CommentsPage />} />
-            <Route path="/dashboard/content-decay" element={<PlaceholderPage title="Content Decay Analysis" />} />
+            <Route path="/dashboard/content-decay" element={<ContentDecay />} />
 
             {/* 2. Core Business */}
-            <Route path="/dashboard/services" element={<PlaceholderPage title="Manage Services" />} />
+            <Route path="/dashboard/services" element={<Services  />} />
             <Route path="/dashboard/pricing" element={<PlaceholderPage title="Pricing Plans" />} />
             <Route path="/dashboard/tech-stack" element={<PlaceholderPage title="Tech Stack" />} />
 
@@ -77,7 +81,7 @@ const App = () => {
             <Route path="/dashboard/leads" element={<LeadsPage />} />
             <Route path="/dashboard/messages" element={<KravionaMessages />} />
             <Route path="/dashboard/newsletters" element={<NewsletterSection />} />
-            <Route path="/dashboard/campaigns" element={<PlaceholderPage title="Marketing Campaigns" />} />
+            <Route path="/dashboard/campaigns" element={<CampaignsPage/>} />
 
             {/* 6. Media & Notifications */}
             <Route path="/dashboard/media" element={<MediaLibrary />} />
@@ -155,7 +159,7 @@ const App = () => {
             <Route path="/dashboard/service-pages/ai-automation" element={<PlaceholderPage title="Service: AI Automation" />} />
 
             {/* 16. Global Site Settings */}
-            <Route path="/dashboard/global/brand" element={<PlaceholderPage title="Global: Brand & Name" />} />
+            <Route path="/dashboard/global/brand" element={<GlobalSettingsPage/>} />
             <Route path="/dashboard/global/contact-info" element={<PlaceholderPage title="Global: Contact Info" />} />
             <Route path="/dashboard/global/address" element={<PlaceholderPage title="Global: Office Address" />} />
             <Route path="/dashboard/global/socials" element={<PlaceholderPage title="Global: Social Links" />} />
