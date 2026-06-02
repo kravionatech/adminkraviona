@@ -7,7 +7,7 @@ import {
   FiLayers, FiCheckCircle, FiTag, FiStar, FiMenu,
 } from 'react-icons/fi';
 import { BsGripVertical } from 'react-icons/bs';
-import axios from 'axios';
+import { servicesApi } from '../../services/api';
 
 // ─── CONSTANTS ────────────────────────────────────────────────────
 const CAT_LABELS = {
@@ -424,9 +424,9 @@ export default function Services() {
   const fetchServices = async () => {
     setLoading(true);
     try {
-      const { data } = await axios.get('/services?limit=50');
-      if (data.success) setServices(data.data.sort((a, b) => a.order - b.order));
-      else throw new Error();
+      const list = await servicesApi.list({ limit: 50 });
+      const arr = Array.isArray(list) ? list : (list?.data || list || []);
+      setServices(arr.sort((a, b) => (a.order || 0) - (b.order || 0)));
     } catch {
       setServices(MOCK);
     } finally {
@@ -458,39 +458,45 @@ export default function Services() {
   // ── Toggle active ─────────────────────────────────────────────
   const toggleActive = async (id) => {
     const svc = services.find(s => s._id === id);
-    try {
-      await axios.put(`/services/${id}`, { isActive: !svc.isActive });
-    } catch { }
     setServices(prev => prev.map(s => s._id === id ? { ...s, isActive: !s.isActive } : s));
-    showToast(`Service ${svc.isActive ? 'deactivated' : 'activated'}`);
+    try {
+      await servicesApi.update(id, { isActive: !svc.isActive });
+      showToast(`Service ${svc.isActive ? 'deactivated' : 'activated'}`);
+    } catch {
+      showToast('Toggle saved locally — sync failed');
+    }
   };
 
   // ── Save (create or update) ───────────────────────────────────
   const handleSave = async (form) => {
     try {
       if (form._id) {
-        await axios.put(`/services/${form._id}`, form);
-        setServices(prev => prev.map(s => s._id === form._id ? { ...s, ...form } : s));
+        const updated = await servicesApi.update(form._id, form);
+        setServices(prev => prev.map(s => s._id === form._id ? { ...s, ...(updated || form) } : s));
         showToast('Service updated');
       } else {
-        const { data } = await axios.post('/services', { ...form, order: services.length + 1 });
-        setServices(prev => [...prev, data.data || { ...form, _id: Date.now().toString() }]);
+        const created = await servicesApi.create({ ...form, order: services.length + 1 });
+        const newSvc = created && (created._id || created.id) ? created : { ...form, _id: Date.now().toString() };
+        setServices(prev => [...prev, newSvc]);
         showToast('Service created');
       }
-    } catch {
-      showToast('Error saving service');
+    } catch (err) {
+      showToast(err?.message || 'Error saving service');
     }
     setModal(null);
   };
 
   // ── Delete ────────────────────────────────────────────────────
   const confirmDelete = async () => {
-    try {
-      await axios.delete(`/services/${delTarget._id}`);
-    } catch { }
-    setServices(prev => prev.filter(s => s._id !== delTarget._id));
-    showToast('Service deleted');
+    const id = delTarget._id;
+    setServices(prev => prev.filter(s => s._id !== id));
     setDelTarget(null);
+    try {
+      await servicesApi.remove(id);
+      showToast('Service deleted');
+    } catch {
+      showToast('Deleted locally — sync failed');
+    }
   };
 
   // ── Drag & Drop reorder ───────────────────────────────────────
@@ -506,12 +512,10 @@ export default function Services() {
     setServices(reordered);
     dragSrc.current = null;
     try {
-      await axios.put('/services/reorder', {
-        order: reordered.map(s => ({ id: s._id, order: s.order }))
-      });
+      await servicesApi.reorder(reordered.map(s => ({ id: s._id, order: s.order })));
       showToast('Order saved');
     } catch {
-      showToast('Reorder saved locally');
+      showToast('Reorder saved locally — sync failed');
     }
   };
 

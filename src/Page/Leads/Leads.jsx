@@ -1,13 +1,14 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   RiUserStarLine, RiAddLine, RiSearchLine, RiFilterLine,
   RiCloseLine, RiEditLine, RiDeleteBinLine, RiPhoneLine,
   RiMailLine, RiMapPinLine, RiTimeLine, RiCheckLine,
-  RiDownloadLine, RiRefreshLine, RiEyeLine, RiFilter3Line, 
+  RiDownloadLine, RiRefreshLine, RiEyeLine, RiFilter3Line,
   RiArrowUpLine, RiArrowDownLine, RiCalendarLine,
   RiWhatsappLine, RiBriefcaseLine, RiMoneyRupeeCircleLine,
   RiBarChartLine, RiArrowRightLine, RiStickyNoteLine,
 } from "react-icons/ri";
+import { messagesApi } from "../../services/api";
 
 // ─── Data ────────────────────────────────────────────────────────────
 const STAGES   = ["New", "Contacted", "Qualified", "Proposal", "Closed Won", "Closed Lost"];
@@ -94,8 +95,26 @@ function Sel({ label, children, ...props }) {
 }
 
 // ─── Main Component ──────────────────────────────────────────────────
+// ─── Normalise API record (Message schema) → Lead view-model ──────────
+const normaliseLead = (m) => ({
+  id: m._id,
+  name: m.name || `${m.firstName || ""} ${m.lastName || ""}`.trim() || "Unknown",
+  email: m.email || "",
+  phone: m.phone || "",
+  city: m.city || "",
+  stage: m.status || "New",
+  source: m.source || m.utmSource || "Website",
+  service: m.service || m.sourceService || "—",
+  budget: m.budget || 0,
+  note: m.note || m.message || "",
+  date: m.createdAt || new Date().toISOString(),
+  updated: m.updatedAt || m.createdAt || new Date().toISOString(),
+  raw: m,
+});
+
 export default function LeadsPage() {
-  const [leads,      setLeads]      = useState(SEED);
+  const [leads,      setLeads]      = useState([]);
+  const [loading,    setLoading]    = useState(true);
   const [search,     setSearch]     = useState("");
   const [stageF,     setStageF]     = useState("all");
   const [sourceF,    setSourceF]    = useState("all");
@@ -111,6 +130,19 @@ export default function LeadsPage() {
   const [selIds,     setSelIds]     = useState([]);
 
   const F = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  // ── Fetch from API ─────────────────────────────────────────────────
+  const fetchLeads = async () => {
+    setLoading(true);
+    try {
+      const res = await messagesApi.list({ limit: 200, sort: "createdAt", order: "desc" });
+      const list = Array.isArray(res) ? res : (res?.data || []);
+      setLeads(list.map(normaliseLead));
+    } catch (e) {
+      setLeads(SEED.map((l) => ({ ...l })));
+    } finally { setLoading(false); }
+  };
+  useEffect(() => { fetchLeads(); }, []);
 
   const filtered = useMemo(() => {
     let r = leads.filter(l => {
@@ -135,18 +167,49 @@ export default function LeadsPage() {
   const openEdit = (l, e) => { e.stopPropagation(); setEditLead(l); setForm({...l, budget: String(l.budget)}); setModal(true); };
   const closeModal = () => { setModal(false); setEditLead(null); };
 
-  const saveLead = () => {
+  const saveLead = async () => {
     if (!form.name.trim() || !form.email.trim()) return;
     const now = new Date().toISOString();
     if (editLead) {
+      // optimistic update
       setLeads(p => p.map(l => l.id === editLead.id ? {...l, ...form, budget: +form.budget || 0, updated: now} : l));
+      try {
+        await messagesApi.update(editLead.id, {
+          name: form.name, email: form.email, phone: form.phone,
+          subject: form.service, message: form.note, status: form.stage,
+        });
+      } catch (e) { console.error("update failed", e); }
     } else {
-      setLeads(p => [...p, {...form, id: Date.now(), budget: +form.budget || 0, updated: now}]);
+      const tempId = `tmp-${Date.now()}`;
+      const optimistic = {...form, id: tempId, budget: +form.budget || 0, updated: now};
+      setLeads(p => [...p, optimistic]);
+      try {
+        const created = await messagesApi.send({
+          firstName: form.name.split(" ")[0] || form.name,
+          lastName: form.name.split(" ").slice(1).join(" "),
+          email: form.email, phone: form.phone, subject: form.service, message: form.note,
+          source: form.source, sourceService: form.service,
+        });
+        if (created?._id) {
+          setLeads(p => p.map(l => l.id === tempId ? { ...l, id: created._id, ...created } : l));
+        }
+      } catch (e) { console.error("create failed", e); }
     }
     closeModal();
   };
-  const delLead = (id) => { setLeads(p => p.filter(l => l.id !== id)); setDelConfirm(null); setDetailLead(null); };
-  const bulkDel = () => { setLeads(p => p.filter(l => !selIds.includes(l.id))); setSelIds([]); };
+  const delLead = async (id) => {
+    setLeads(p => p.filter(l => l.id !== id));
+    setDelConfirm(null); setDetailLead(null);
+    try { await messagesApi.remove(id); } catch (e) { console.error("delete failed", e); }
+  };
+  const bulkDel = async () => {
+    const ids = [...selIds];
+    setLeads(p => p.filter(l => !ids.includes(l.id)));
+    setSelIds([]);
+    for (const id of ids) {
+      try { await messagesApi.remove(id); } catch {}
+    }
+  };
 
   const sort = (col) => { if (sortCol === col) setSortAsc(p => !p); else { setSortCol(col); setSortAsc(true); } };
   const SortIcon = ({ col }) => sortCol !== col ? null : sortAsc ? <RiArrowUpLine size={11} /> : <RiArrowDownLine size={11} />;
@@ -201,7 +264,7 @@ export default function LeadsPage() {
               }}>{l}</button>
             ))}
           </div>
-          <button onClick={() => setLeads(SEED)} style={{ display:"flex", alignItems:"center", gap:4, background:"none", border:"1px solid #e2e8f0", borderRadius:8, padding:"7px 12px", cursor:"pointer", color:"#64748b", fontSize:12 }}>
+          <button onClick={fetchLeads} style={{ display:"flex", alignItems:"center", gap:4, background:"none", border:"1px solid #e2e8f0", borderRadius:8, padding:"7px 12px", cursor:"pointer", color:"#64748b", fontSize:12 }}>
             <RiRefreshLine size={13} /> Refresh
           </button>
           <button style={{ display:"flex", alignItems:"center", gap:4, background:"none", border:"1px solid #e2e8f0", borderRadius:8, padding:"7px 12px", cursor:"pointer", color:"#64748b", fontSize:12 }}>

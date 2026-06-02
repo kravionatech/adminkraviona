@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { siteConfigApi } from "../../services/api";
 import {
   FiGlobe, FiPhone, FiMail, FiMapPin, FiLink,
   FiHome, FiBarChart2, FiHelpCircle, FiSend,
@@ -537,10 +538,17 @@ function MaintenanceSection({ data, set }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function GlobalSettingsPage() {
   const [cfg, setCfg] = useState(INITIAL);
+  const [loading, setLoading] = useState(true);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [activeSection, setActiveSection] = useState("company");
+
+  useEffect(() => {
+    siteConfigApi.get().then((d) => {
+      if (d && typeof d === "object") setCfg({ ...INITIAL, ...d });
+    }).catch(() => null).finally(() => setLoading(false));
+  }, []);
 
   const update = (key) => (val) => {
     setCfg((prev) => ({ ...prev, [key]: val }));
@@ -550,11 +558,16 @@ export default function GlobalSettingsPage() {
 
   const handleSave = async () => {
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 1000));
-    setSaving(false);
-    setDirty(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    try {
+      await siteConfigApi.update(cfg);
+      setDirty(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (e) {
+      alert("Failed to save: " + (e?.message || "unknown error"));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const SECTIONS = [

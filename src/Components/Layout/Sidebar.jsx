@@ -13,7 +13,7 @@ import {
   FiRepeat, FiAlertCircle, FiCheckSquare, FiSliders
 } from 'react-icons/fi';
 
-const Sidebar = () => {
+const Sidebar = ({ onLogout }) => {
   const [collapsed, setCollapsed] = useState({});
 
   const toggle = (title) =>
@@ -347,7 +347,7 @@ const Sidebar = () => {
 
       {/* Footer */}
       <div className="p-3 border-t border-white/10 flex-shrink-0 bg-[#1a3d42]/80">
-        <button className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-white bg-red-500/80 hover:bg-red-500 transition-all duration-200 text-xs uppercase tracking-wider">
+        <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-white bg-red-500/80 hover:bg-red-500 transition-all duration-200 text-xs uppercase tracking-wider">
           <FiLogOut size={14} />
           Logout
         </button>

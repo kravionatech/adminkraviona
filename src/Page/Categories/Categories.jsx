@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { categoriesApi } from "../../services/api";
 import {
   FiGrid,
   FiPlus,
@@ -247,15 +248,33 @@ function CategoryRow({ cat, onEdit, onDelete }) {
 }
 
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState(mockCategories);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
+  const fetchCats = async () => {
+    setLoading(true);
+    try {
+      const data = await categoriesApi.adminList();
+      const list = (Array.isArray(data) ? data : (data?.data || [])).map((c) => ({
+        ...c,
+        id: c._id,
+        posts: c.postsCount || c.posts || 0,
+        createdAt: c.createdAt ? new Date(c.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "",
+      }));
+      setCategories(list);
+    } catch (e) {
+      setCategories(mockCategories);
+    } finally { setLoading(false); }
+  };
+  useEffect(() => { fetchCats(); }, []);
+
   const filtered = categories.filter((c) => {
-    const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) || c.slug.includes(search.toLowerCase());
+    const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) || (c.slug || "").includes(search.toLowerCase());
     const matchFilter = filter === "all" || c.status === filter || (filter === "featured" && c.featured);
     return matchSearch && matchFilter;
   });
@@ -264,18 +283,25 @@ export default function CategoriesPage() {
   const activeCount = categories.filter((c) => c.status === "active").length;
   const featuredCount = categories.filter((c) => c.featured).length;
 
-  const handleSave = (form) => {
-    if (editTarget) {
-      setCategories(categories.map((c) => (c.id === editTarget.id ? { ...editTarget, ...form } : c)));
-    } else {
-      setCategories([...categories, { ...form, id: Date.now(), posts: 0, createdAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) }]);
-    }
+  const handleSave = async (form) => {
+    try {
+      if (editTarget) {
+        const updated = await categoriesApi.update(editTarget.id, form);
+        setCategories(categories.map((c) => (c.id === editTarget.id ? { ...c, ...form, ...(updated || {}) } : c)));
+      } else {
+        const created = await categoriesApi.create(form);
+        const nc = { ...form, id: created?._id || Date.now(), posts: 0, createdAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }), ...(created || {}) };
+        setCategories([...categories, nc]);
+      }
+    } catch (e) { console.error("save failed", e); }
     setEditTarget(null);
   };
 
-  const handleDelete = () => {
-    setCategories(categories.filter((c) => c.id !== deleteTarget.id));
+  const handleDelete = async () => {
+    const id = deleteTarget.id;
+    setCategories(categories.filter((c) => c.id !== id));
     setDeleteTarget(null);
+    try { await categoriesApi.remove(id); } catch (e) { console.error("delete failed", e); }
   };
 
   return (

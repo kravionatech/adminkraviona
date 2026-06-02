@@ -1,10 +1,11 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   FiUpload, FiSearch, FiGrid, FiList, FiFilter,
   FiImage, FiVideo, FiFileText, FiFolder, FiTrash2,
   FiDownload, FiCopy, FiEye, FiMoreVertical, FiX,
   FiCheck, FiStar, FiLink, FiChevronDown
 } from "react-icons/fi";
+import { mediaApi } from "../../services/api";
 
 const MOCK_FILES = [
   { id: 1, name: "hero-banner.jpg", type: "image", size: "2.4 MB", dims: "1920×1080", date: "2 hours ago", url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&q=60", starred: true, folder: "Marketing" },
@@ -39,6 +40,18 @@ export default function MediaLibrary() {
   const [dragging, setDragging] = useState(false);
   const [sortBy, setSortBy] = useState("date");
   const [files, setFiles] = useState(MOCK_FILES);
+
+  useEffect(() => {
+    mediaApi.list({ limit: 200 }).then((d) => {
+      const list = (Array.isArray(d) ? d : (d?.data || [])).map((f) => ({
+        ...f, id: f._id, name: f.filename || f.originalname || f.name, url: f.url,
+        type: (f.mimetype?.startsWith("video/") && "video") || (f.mimetype?.startsWith("image/") && "image") || "document",
+        size: f.size ? `${(f.size / 1024).toFixed(0)} KB` : "",
+        date: f.createdAt,
+      }));
+      if (list.length) setFiles(list);
+    }).catch(() => null);
+  }, []);
   const [ctxMenu, setCtxMenu] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
   const fileInput = useRef();

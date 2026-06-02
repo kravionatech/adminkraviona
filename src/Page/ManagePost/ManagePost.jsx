@@ -5,7 +5,7 @@ import {
   FiPlus, FiSearch, FiRefreshCw, FiDownload,
   FiEye, FiEdit3, FiTrash2, FiCheckSquare
 } from 'react-icons/fi';
-import axios from 'axios'
+import { blogApi } from '../../services/api';
 
 // ─── STATUS PILL ─────────────────────────────────────────────
 const PILL = {
@@ -72,10 +72,11 @@ export default function ManagePost() {
   const fetchPosts = async () => {
     setLoading(true);
     try {
-      const { data } = await axios.get('/blog/posts?limit=100&status=all');
-      if (data.success) setPosts(data.data);
+      const data = await blogApi.list({ limit: 100 });
+      const list = Array.isArray(data) ? data : (data?.data || []);
+      setPosts(list);
     } catch {
-      // fallback: keep existing
+      setPosts([]);
     } finally {
       setLoading(false);
     }
@@ -129,7 +130,7 @@ export default function ManagePost() {
   // ── Bulk actions ──────────────────────────────────────────
   const bulkStatus = async (status) => {
     await Promise.all([...selected].map(id =>
-      axios.put(`/blog/posts/${id}`, { status })
+      blogApi.update(id, { status }).catch(() => null)
     ));
     clearSelection();
     fetchPosts();
@@ -137,7 +138,7 @@ export default function ManagePost() {
 
   const bulkDelete = async () => {
     if (!confirm(`Delete ${selected.size} posts?`)) return;
-    await Promise.all([...selected].map(id => axios.delete(`/blog/posts/${id}`)));
+    await Promise.all([...selected].map(id => blogApi.remove(id).catch(() => null)));
     clearSelection();
     fetchPosts();
   };
@@ -145,7 +146,7 @@ export default function ManagePost() {
   // ── Single delete ─────────────────────────────────────────
   const confirmDelete = async () => {
     if (!delTarget) return;
-    await axios.delete(`/blog/posts/${delTarget._id}`);
+    await blogApi.remove(delTarget._id);
     setDelTarget(null);
     fetchPosts();
   };
@@ -153,7 +154,7 @@ export default function ManagePost() {
   // ── Toggle publish ────────────────────────────────────────
   const togglePublish = async (post) => {
     const status = post.status === 'published' ? 'draft' : 'published';
-    await axios.put(`/blog/posts/${post._id}`, { status });
+    await blogApi.update(post._id, { status });
     fetchPosts();
   };
 

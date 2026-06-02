@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { commentsApi } from "../../services/api";
 import {
   FiMessageSquare, FiCheck, FiX, FiTrash2, FiSearch,
   FiFilter, FiChevronDown, FiChevronRight, FiCornerDownRight,
@@ -258,6 +259,30 @@ export default function CommentsPage() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
+  useEffect(() => {
+    commentsApi.list({ limit: 200 }).then((res) => {
+      const list = Array.isArray(res) ? res : (res?.data || []);
+      if (list.length > 0) {
+        // Group by postId / postTitle
+        const groups = {};
+        list.forEach((c) => {
+          const k = c.postId || c.postSlug || "ungrouped";
+          if (!groups[k]) groups[k] = {
+            postId: c.postId, postTitle: c.postTitle || c.postSlug || "Uncategorised",
+            postSlug: c.postSlug, postDate: c.postDate || "", comments: [],
+          };
+          groups[k].comments.push({
+            id: c._id, author: c.author || c.name, email: c.email,
+            avatar: (c.author || c.name || "?").split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase(),
+            avatarColor: "#3B82F6", body: c.body || c.content,
+            date: c.createdAt, status: c.status || "pending", replies: c.replies || [],
+          });
+        });
+        setData(Object.values(groups));
+      }
+    }).catch(() => null);
+  }, []);
+
   const allComments = data.flatMap((g) => g.comments);
   const counts = {
     all: allComments.length,
@@ -271,10 +296,12 @@ export default function CommentsPage() {
       ...g,
       comments: g.comments.map((c) => c.id === id ? { ...c, ...patch } : c),
     })));
+    commentsApi.update(id, patch).catch(() => null);
   };
 
   const deleteComment = (id) => {
     setData(data.map((g) => ({ ...g, comments: g.comments.filter((c) => c.id !== id) })));
+    commentsApi.remove(id).catch(() => null);
   };
 
   const replyToComment = (id, text) => {

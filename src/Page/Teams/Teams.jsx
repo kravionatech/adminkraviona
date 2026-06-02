@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { teamApi } from "../../services/api";
 import {
   FiUsers, FiShield, FiActivity, FiMail, FiPlus, FiDownload,
   FiSearch, FiGrid, FiList, FiMoreVertical, FiMessageSquare,
@@ -187,12 +188,21 @@ function InviteCard() {
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 export default function TeamsPage() {
+  const [teamList, setTeamList] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All Roles");
   const [statusFilter, setStatusFilter] = useState("All Status");
   const [viewMode, setViewMode] = useState("grid");
 
-  const filtered = MEMBERS.filter((m) => {
+  useEffect(() => {
+    teamApi.list({ limit: 100 })
+      .then((data) => setTeamList(Array.isArray(data) ? data : (data?.data || [])))
+      .catch(() => setTeamList(MEMBERS))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = (teamList.length ? teamList : MEMBERS).filter((m) => {
     const matchSearch =
       m.name.toLowerCase().includes(search.toLowerCase()) ||
       m.role.toLowerCase().includes(search.toLowerCase());

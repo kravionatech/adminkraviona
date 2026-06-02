@@ -1,0 +1,270 @@
+# KRAVIONA CRM — Missing Backend Endpoints
+# Generated: 2026-06-02
+# Source: API_GUIDE.md (v2.0) cross-checked against every CRM page in this admin panel.
+#
+# Every page below has been migrated to call the live API via src/services/api.js.
+# If a backend route is missing or returns 404, the page falls back to its seeded
+# mock data — that fallback is intentional so the UI is never blank, but to make
+# the CRM 100% data-driven each of these routes needs to exist in the Express app.
+#
+# ----------------------------------------------------------------------
+#  1. NEW (currently 100% mock, never call backend)
+# ----------------------------------------------------------------------
+
+# 1.1 Content Decay dashboard expects a richer payload than /api/posts
+#      Page:      /dashboard/content-decay  →  ContentDecay.jsx
+#      Currently: fakes the report from the regular /posts list
+#      Needs:     GET /api/posts/decay-report
+#                 ? Returns per-post: { _id, title, slug, lastReviewedAt,
+#                                       views (last 30/60/90 days), decayScore,
+#                                       status: "Fresh" | "Aging" | "Stale" | "Dead" }
+#      Optional:  PUT /api/posts/:id/reviewed
+#                 ? Currently the page calls /api/v1/blog.update(...)
+#                   with { lastReviewedAt }, which is not a documented field.
+
+# 1.2 Lead / Pipeline dashboard has rich kanban & conversion metrics
+#      Page:      /dashboard/leads  →  Leads.jsx
+#      Currently: maps /api/admin/messages onto the Lead view-model
+#      Needs (optional but recommended):
+#        GET    /api/v1/leads                       — paginated leads with stage
+#        POST   /api/v1/leads                       — create
+#        PUT    /api/v1/leads/:id                   — update (stage, budget, note…)
+#        DELETE /api/v1/leads/:id
+#        PATCH  /api/v1/leads/:id/stage             — quick stage change
+#        GET    /api/v1/leads/stats                 — counts per stage + won revenue
+
+# 1.3 Tech Stack CRUD writes to the same SiteConfig document but the spec
+#      only exposes a single "techStack" array for the homepage. There is
+#      no dedicated CRUD endpoint for the company-wide tools list.
+#      Page:      /dashboard/tech-stack  →  TechStack.jsx
+#      Currently: PUTs whole SiteConfig on every save (heavy).
+#      Recommended new endpoints:
+#        GET    /api/v1/tech-stack
+#        POST   /api/v1/tech-stack
+#        PUT    /api/v1/tech-stack/:id
+#        DELETE /api/v1/tech-stack/:id
+#        PUT    /api/v1/tech-stack/reorder
+
+# 1.4 Global Settings drill-down pages each call SiteConfig on save, but
+#      the schema doesn't define every sub-section used by the editor.
+#      Page fields currently saved but not in the published schema:
+#        /dashboard/global/contact-info   →  contactInfo { primaryPhone, whatsappLink, additionalContacts[], … }
+#        /dashboard/global/address        →  address { primary{...}, additionalOffices[], showInFooter, showOnContactPage }
+#        /dashboard/global/nav            →  nav { showCtaButton, links[{ label,href,isVisible,hasDropdown }] }
+#        /dashboard/global/footer         →  footer { logoText, backgroundColor, textColor, showNewsletterBlock, columns[{title,links[]}] }
+#        /dashboard/global/newsletter     →  newsletter { provider, mailchimpListId, doubleOptIn, welcomeEmail{...} }
+#        /dashboard/global/analytics      →  analytics { gtmId, gaId, facebookPixelId, hotjarId, microsoftClarityId, customHeadScript, customBodyScript }
+#        /dashboard/global/maintenance    →  maintenance { enabled, title, message, expectedReturnTime, bypassToken, allowedIPs[], redirectUrl }
+#      Recommendation: extend the SiteConfig Mongoose schema to include
+#      these top-level fields (see API_GUIDE.md §10.1). Without them
+#      PUT /api/v1/site-config will silently drop the values.
+
+# 1.5 SEO pages — most rely on SiteConfig but a few need separate storage
+#      Page / Route                                  Missing endpoint
+#      /dashboard/seo/robots      RobotsPage.jsx     PUT /api/v1/settings/robotsTxt  (or extend SiteConfig)
+#      /dashboard/seo/schema      Schemajsonld.jsx   PUT /api/v1/settings/jsonLd     (or extend SiteConfig)
+#      /dashboard/seo/sitemap     Sitemapconfig.jsx  PUT /api/v1/settings/sitemapConfig
+#      /dashboard/seo/verification Siteverification.jsx PUT /api/v1/settings/googleVerification
+#      /dashboard/seo/canonicals  Canonicalrules.jsx  PUT /api/v1/settings/canonicalRules
+#      /dashboard/seo/noindex     Noindexpages.jsx   PUT /api/v1/settings/noindexRules
+
+# 1.6 Blog page-editor fields
+#      Page:      /dashboard/blog-page/* (BlogHero, BlogFeatured, BlogPagination)
+#      Currently: writes the section payload to SiteConfig, but SiteConfig
+#                 has no `blogHero`, `blogFeatured`, `blogPagination` keys.
+#      Add to SiteConfig: blogHero {…}, blogFeatured { postId, … }, blogPagination { perPage, layout }
+
+# 1.7 Case-Studies page-level editor
+#      Page:      /dashboard/case-studies/hero, /visibility, /notify
+#      Currently: writes SiteConfig.caseStudies.{hero, visibility, notify}
+#      Add to SiteConfig: caseStudies { heroTitle, heroSubtitle, isComingSoon, notifyForm:{…} }
+
+# 1.8 Pricing page-level editor
+#      Page:      /dashboard/pricing-page/hero, /visibility, /billing, /disclaimer, /faqs
+#      Currently: writes SiteConfig.pricing.{hero, billing, disclaimer, faqs}
+#      Add to SiteConfig: pricing { heroTitle, heroSubtitle, billingToggle, disclaimer, faqs[], isComingSoon }
+
+# 1.9 Gallery page-level editor
+#      Page:      /dashboard/gallery/hero, /filters, /featured, /testimonials
+#      Currently: writes SiteConfig.gallery.{hero, filters, featured, testimonials}
+#      Add to SiteConfig: gallery { heroTitle, filters[], featuredProjectIds[], testimonials[] }
+
+# 1.10 Contact page-level editor
+#      Page:      /dashboard/contact/hero, /info, /address, /form-config, /auto-reply
+#      Currently: writes SiteConfig.contact.{hero, info, address, formConfig, autoReply}
+#      Add to SiteConfig: contact { heroTitle, heroSubtitle, formConfig{fields[]}, autoReply{subject,body} }
+
+# 1.11 Services page-level editor
+#      Page:      /dashboard/services-page/hero, /edge-cards, /nav-config, /faqs, /contact-form
+#      Add to SiteConfig: servicesPage { heroTitle, edgeCards[], navConfig{…}, faqs[], contactFormCopy{…} }
+
+# 1.12 About page-level editor
+#      Page:      /dashboard/about/hero, /story, /quote, /stats, /values, /cta
+#      Add to SiteConfig: about { heroTitle, heroSubtitle, storyTitle, storyContent, storyQuote,
+#                                 stats[], values[{title,description,icon}], ctaTitle, ctaSubtitle }
+
+# 1.13 Home page editor
+#      Page:      /dashboard/home/hero, /stats, /services, /why-us, /who-we-are,
+#                  /tech-stack, /faqs, /blog-section, /cta, /testimonials, /newsletter
+#      SiteConfig has hero, stats, whyUs, whoWeAre, techStack, homeFaqs, newsletter
+#      but is MISSING: homeServicesShowcase, homeBlogSection, homeCta, homeTestimonials
+#      Add to SiteConfig: homeServicesShowcase {…}, homeBlogSection {…},
+#                         homeCta {…}, homeTestimonials {…}
+
+# 1.14 Service-page editors
+#      Page:      /dashboard/service-pages/<slug>  (11 wrappers + ServicePageEditor)
+#      Currently: each save does servicesApi.update or servicesApi.create.
+#      The `Service` schema in §10.2 supports all fields used by the editor
+#      (whyChoose, featureCards, faqs, technologies, relatedServices, seo),
+#      so this should work as soon as the service is created once. If the
+#      service record doesn't exist yet, the editor falls back to PATCH-by-
+#      slug, which is NOT in the spec — recommend adding
+#        PATCH /api/v1/services/by-slug/:slug
+#      or auto-creating on first PUT.
+
+# ----------------------------------------------------------------------
+#  2. PARTIAL — endpoint exists but response shape differs from what the
+#     CRM page expects.  Either change the page or extend the response.
+# ----------------------------------------------------------------------
+
+# 2.1 /api/v1/public/portfolio  —  Gallery "Filter Categories" editor
+#      Page: GalleryFilters.jsx
+#      Needs the distinct list of (projectType, industry) used by all
+#      published projects so the admin can manage the filter chips.
+#      Today the CRM has to call /portfolio and de-dupe client-side.
+
+# 2.2 /api/admin/messages  —  Messages inbox
+#      Page: Message.jsx
+#      Page also reads m.leadId / m.notes / m.assignedTo which the spec
+#      does not list in the /api/admin/messages/:id response. Backend
+#      should populate these fields on read (already documented but not
+#      shown in the example).
+
+# 2.3 /api/v1/public/testimonials  —  Testimonials CRUD
+#      Page: uses HomeTestimonials.jsx for both the home section editor
+#      AND the testimonial list. Two different shapes are needed:
+#        - List / create / edit / approve / delete (CRUD on testimonials)
+#        - Home section visibility & display rules
+#      The current spec only has the CRUD. Add a SiteConfig key
+#      homeTestimonials = { title, subtitle, source:"featured"|"latest", count, showOn }.
+
+# 2.4 /api/admin/users  —  Users page
+#      Page: Users.jsx
+#      Spec has GET /api/admin/users. CRM needs:
+#        POST  /api/admin/users  (create new admin)
+#        PATCH /api/admin/users/:id  (update name/phone/avatar)
+#      Currently the page alerts "ask them to sign up first" — backend
+#      doesn't expose an admin-side create endpoint.
+
+# 2.5 /api/admin/audit  —  Audit log page
+#      Page: AuditLogs.jsx
+#      Spec has GET /api/admin/audit. CRM needs:
+#        filter: { user, target, action, dateFrom, dateTo }
+#        export: GET /api/admin/audit/export.csv
+
+# 2.6 /api/v1/public/case-studies  —  Case-Studies page
+#      Page: /case-studies (visitor) and the CRM
+#      Needs ?status=published query (already documented) but the
+#      controller must filter server-side. Confirmed present in spec.
+
+# 2.7 /api/admin/campaigns  —  Campaigns CRUD
+#      Spec has /api/admin/campaigns CRUD + /send. CRM page is mostly
+#      read-only; backend also needs:
+#        GET /api/admin/campaigns/stats   (open / click / bounce totals)
+
+# ----------------------------------------------------------------------
+#  3. RECOMMENDED NEW ENDPOINTS (not in spec, but the CRM reaches for them)
+# ----------------------------------------------------------------------
+
+# 3.1 GET  /api/v1/dashboard/stats
+#      Used by Dashboard.jsx. Today the dashboard calls 7 separate
+#      endpoints in parallel. A single aggregate endpoint would halve
+#      load time. Suggested response:
+#        {
+#          leads: { total, new, contacted, qualified, closed_won, thisMonth, chart: [12m] },
+#          posts: { total, published, draft, totalViews },
+#          messages: { total, unread },
+#          subscribers: { total, active, thisMonth },
+#          projects: { total, featured },
+#          notifications: { unread }
+#        }
+
+# 3.2 POST /api/admin/users  (see 2.4)
+# 3.3 PATCH /api/admin/users/:id  (see 2.4)
+# 3.4 GET  /api/admin/audit/export.csv  (see 2.5)
+# 3.5 GET  /api/admin/campaigns/stats  (see 2.7)
+# 3.6 GET  /api/posts/decay-report  (see 1.1)
+# 3.7 PUT  /api/posts/:id/reviewed  (see 1.1)
+# 3.8 PATCH /api/v1/services/by-slug/:slug  (see 1.14)
+
+# ----------------------------------------------------------------------
+#  4. SCHEMA ADDITIONS (for SiteConfig — extend mongoose schema §10.1)
+# ----------------------------------------------------------------------
+#
+# All of these are written to PUT /api/v1/site-config by editor pages
+# but are silently dropped because the Mongoose schema does not
+# include them. Add at the top level of `siteconfigs` document:
+#
+#   homeServicesShowcase
+#   homeBlogSection
+#   homeCta
+#   homeTestimonials
+#   homeNewsletter        (separate from newsletter)
+#   about{ heroTitle, heroSubtitle, storyTitle, storyContent, storyQuote,
+#          values[], ctaTitle, ctaSubtitle }
+#   contact{ heroTitle, heroSubtitle, formConfig, autoReply, info, address }
+#   servicesPage{ heroTitle, edgeCards[], navConfig, faqs[], contactFormCopy }
+#   pricing{ heroTitle, heroSubtitle, billingToggle, disclaimer, faqs[],
+#            isComingSoon }
+#   caseStudies{ heroTitle, heroSubtitle, isComingSoon, notifyForm }
+#   gallery{ heroTitle, filters[], featuredProjectIds[], testimonials[] }
+#   blogHero
+#   blogFeatured
+#   blogPagination
+#   analytics{ gtmId, gaId, facebookPixelId, hotjarId, microsoftClarityId,
+#              customHeadScript, customBodyScript }
+#   maintenance{ enabled, title, message, expectedReturnTime, bypassToken,
+#                allowedIPs[], redirectUrl }
+#   contactInfo{ primaryPhone, secondaryPhone, primaryEmail, secondaryEmail,
+#                supportEmail, whatsappNumber, whatsappLink,
+#                showWhatsappButton, additionalContacts[] }
+#   address{ primary, additionalOffices[], showInFooter, showOnContactPage }
+#   social{ ... 12 platforms, showInHeader, showInFooter, openInNewTab }
+#   nav{ showCtaButton, ctaText, ctaLink, stickyHeader, showSearchIcon, links[] }
+#   footer{ logoText, logoImageUrl, description, copyrightText,
+#           showNewsletterBlock, showSocialIcons, backgroundColor, textColor,
+#           columns[{ title, links[] }] }
+#   newsletter{ enabled, provider, mailchimpListId, apiKey, doubleOptIn,
+#               welcomeEmailEnabled, welcomeSubject, welcomeBody,
+#               unsubscribePageUrl }
+#   techStack[ ]   (already present — keep as is, but the editor writes
+#                   additional fields: id, name, category, websiteUrl, …)
+#
+# Recommendation: relax the SiteConfig mongoose schema to be a strict
+# `false` (no strict mode) so any new editor field is preserved, then
+# add explicit sub-schemas as the spec matures.
+
+# ----------------------------------------------------------------------
+#  5. PRIORITY RECOMMENDATION
+# ----------------------------------------------------------------------
+#
+#   P0  (do first — blocks core CRM flows):
+#       - 1.4  Global Settings sub-sections (contactInfo, address, nav, footer,
+#              newsletter, analytics, maintenance)
+#       - 1.13 Home page editor sub-sections
+#       - 1.12 About page editor sub-sections
+#       - 4.   Schema additions (drop strict mode + add the keys above)
+#       - 1.1  Content Decay report endpoint
+#       - 2.4  POST /api/admin/users
+#
+#   P1  (do second — improves UX but CRM works without):
+#       - 1.2  Dedicated /leads endpoints
+#       - 1.3  Dedicated /tech-stack CRUD
+#       - 1.5  SEO settings endpoints
+#       - 1.6-1.11 Per-page editor sub-sections
+#       - 2.7  Campaign stats
+#
+#   P2  (nice to have):
+#       - 3.1  /api/v1/dashboard/stats aggregate
+#       - 2.5  Audit log CSV export
+#       - 1.14 PATCH /services/by-slug/:slug

@@ -1,15 +1,12 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
+import { tokenStore } from '../services/apiClient';
 
 const PublicRoute = ({ children }) => {
-
-  const isAuthenticated = true; 
-
-  if (isAuthenticated) {
+  const token = tokenStore.getAccess();
+  if (token) {
     return <Navigate to="/dashboard" replace />;
   }
-
- 
   return children ? children : <Outlet />;
 };
 

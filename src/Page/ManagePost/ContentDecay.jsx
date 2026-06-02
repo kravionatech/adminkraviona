@@ -6,7 +6,7 @@ import {
   FiCheck, FiEdit3, FiExternalLink, FiInfo, FiAlertTriangle,
   FiActivity, FiBarChart2
 } from 'react-icons/fi';
-import axios from "axios";
+import { blogApi } from '../../services/api';
 
 // ─── HELPERS ─────────────────────────────────────────────────────
 const TODAY = new Date();
@@ -111,11 +111,13 @@ export default function ContentDecay() {
   const fetchPosts = async () => {
     setLoading(true);
     try {
-      const { data } = await axios.get('/blog/posts/decay-report');
-      if (data.success) {
-        setPosts(normalize(data.data));
+      // /blog/posts/decay-report isn't part of the public spec — derive from /posts
+      const data = await blogApi.list({ limit: 200 });
+      const list = Array.isArray(data) ? data : (data?.data || []);
+      if (list.length > 0) {
+        setPosts(normalize(list));
       } else {
-        throw new Error();
+        setPosts(normalize(MOCK_POSTS));
       }
     } catch {
       // fallback to mock
@@ -171,7 +173,8 @@ export default function ContentDecay() {
 
   const markReviewed = async (id) => {
     try {
-      await axios.put(`/blog/posts/${id}/reviewed`);
+      // No dedicated /reviewed endpoint in spec — fall back to update
+      await blogApi.update(id, { lastReviewedAt: new Date().toISOString() });
     } catch { }
     setPosts(prev =>
       prev.map(p => p._id === id
@@ -185,7 +188,7 @@ export default function ContentDecay() {
   const bulkMarkReviewed = async () => {
     if (!selected.size) { showToast('Select posts first'); return; }
     await Promise.allSettled(
-      [...selected].map(id => axios.put(`/blog/posts/${id}/reviewed`))
+      [...selected].map(id => blogApi.update(id, { lastReviewedAt: new Date().toISOString() }).catch(() => null))
     );
     const now = new Date().toISOString();
     setPosts(prev =>

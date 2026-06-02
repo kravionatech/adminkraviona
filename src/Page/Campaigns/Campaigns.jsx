@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   FiMail, FiPlus, FiSearch, FiEdit2, FiTrash2, FiEye,
   FiSend, FiPause, FiPlay, FiCopy, FiBarChart2,
@@ -7,6 +7,7 @@ import {
   FiChevronDown, FiZap, FiTarget, FiFilter, FiMoreVertical,
 } from "react-icons/fi";
 import { HiOutlineMegaphone, HiOutlineSparkles } from "react-icons/hi2";
+import { campaignsApi } from "../../services/api";
 
 const CAMPAIGNS = [
   {
@@ -278,10 +279,19 @@ function CreateModal({ open, onClose, onSave }) {
 }
 
 export default function CampaignsPage() {
-  const [campaigns, setCampaigns] = useState(CAMPAIGNS);
+  const [campaigns, setCampaigns] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterType, setFilterType] = useState("all");
+
+  useEffect(() => {
+    campaignsApi.list({ limit: 100 }).then((d) => {
+      const list = Array.isArray(d) ? d : (d?.data || []);
+      setCampaigns(list.length ? list : CAMPAIGNS);
+    }).catch(() => setCampaigns(CAMPAIGNS))
+      .finally(() => setLoading(false));
+  }, []);
   const [modalOpen, setModalOpen] = useState(false);
   const [view, setView] = useState("grid"); // grid | list
 

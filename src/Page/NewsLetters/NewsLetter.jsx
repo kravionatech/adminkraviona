@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { subscribersApi } from "../../services/api";
 import {
   RiMailSendLine, RiAddLine, RiSearchLine, RiCloseLine,
   RiEditLine, RiDeleteBinLine, RiDownloadLine, RiRefreshLine,
@@ -76,7 +77,8 @@ function TagChip({ tag }) {
 }
 
 export default function NewsletterSection() {
-  const [subs,       setSubs]       = useState(SEED);
+  const [subs,       setSubs]       = useState([]);
+  const [loading,    setLoading]    = useState(true);
   const [search,     setSearch]     = useState("");
   const [statusF,    setStatusF]    = useState("all");
   const [sourceF,    setSourceF]    = useState("all");
@@ -90,6 +92,21 @@ export default function NewsletterSection() {
   const [sortAsc,    setSortAsc]    = useState(false);
 
   const F = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const fetchSubs = async () => {
+    setLoading(true);
+    try {
+      const data = await subscribersApi.list({ limit: 200 });
+      const list = (Array.isArray(data) ? data : (data?.data || [])).map((s) => ({
+        ...s, id: s._id,
+        name: s.name || s.email?.split("@")[0] || "Subscriber",
+        updated: s.updatedAt || s.subscribedAt || s.createdAt,
+      }));
+      setSubs(list);
+    } catch (e) { setSubs(SEED); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { fetchSubs(); }, []);
 
   const filtered = useMemo(() => {
     let r = subs.filter(s => {
@@ -113,19 +130,32 @@ export default function NewsletterSection() {
   const openEdit = (s, e) => { e.stopPropagation(); setEditSub(s); setForm({...s}); setModal(true); };
   const closeModal = () => { setModal(false); setEditSub(null); };
 
-  const save = () => {
-    if (!form.name.trim() || !form.email.trim()) return;
-    const now = new Date().toISOString();
+  const save = async () => {
+    if (!form.email?.trim()) return;
     if (editSub) {
-      setSubs(p => p.map(s => s.id === editSub.id ? { ...s, ...form, updated: now } : s));
+      setSubs(p => p.map(s => s.id === editSub.id ? { ...s, ...form } : s));
+      try { await subscribersApi.update(editSub.id, form); } catch (e) { console.error(e); }
     } else {
-      setSubs(p => [...p, { ...form, id: Date.now(), updated: now }]);
+      try {
+        const created = await subscribersApi.legacyNew({ email: form.email, name: form.name, source: form.source, tag: form.tag });
+        const nc = { ...form, id: created?._id || Date.now(), updated: new Date().toISOString(), ...(created || {}) };
+        setSubs(p => [...p, nc]);
+      } catch (e) { console.error(e); }
     }
     closeModal();
   };
 
-  const del = (id) => { setSubs(p => p.filter(s => s.id !== id)); setDelConfirm(null); };
-  const bulkDel = () => { setSubs(p => p.filter(s => !selIds.includes(s.id))); setSelIds([]); };
+  const del = async (id) => {
+    setSubs(p => p.filter(s => s.id !== id));
+    setDelConfirm(null);
+    try { await subscribersApi.remove(id); } catch (e) { console.error(e); }
+  };
+  const bulkDel = async () => {
+    const ids = [...selIds];
+    setSubs(p => p.filter(s => !ids.includes(s.id)));
+    setSelIds([]);
+    for (const id of ids) { try { await subscribersApi.remove(id); } catch {} }
+  };
 
   const allSel   = filtered.length > 0 && filtered.every(s => selIds.includes(s.id));
   const toggleAll = () => setSelIds(allSel ? [] : filtered.map(s => s.id));
@@ -169,7 +199,7 @@ export default function NewsletterSection() {
           <h1 style={{ margin:0, fontSize:22, fontWeight:700, color:"#1e293b", letterSpacing:"-0.3px" }}>Newsletter Subscribers</h1>
         </div>
         <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-          <button onClick={() => setSubs(SEED)} style={{ display:"flex", alignItems:"center", gap:4, background:"none", border:"1px solid #e2e8f0", borderRadius:8, padding:"7px 12px", cursor:"pointer", color:"#64748b", fontSize:12 }}>
+          <button onClick={fetchSubs} style={{ display:"flex", alignItems:"center", gap:4, background:"none", border:"1px solid #e2e8f0", borderRadius:8, padding:"7px 12px", cursor:"pointer", color:"#64748b", fontSize:12 }}>
             <RiRefreshLine size={13}/> Refresh
           </button>
           <button style={{ display:"flex", alignItems:"center", gap:4, background:"none", border:"1px solid #e2e8f0", borderRadius:8, padding:"7px 12px", cursor:"pointer", color:"#64748b", fontSize:12 }}>

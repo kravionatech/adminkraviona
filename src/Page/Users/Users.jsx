@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { adminUsersApi } from "../../services/api";
 import {
   RiUserLine, RiUserAddLine, RiSearchLine, RiFilterLine,
   RiEditLine, RiDeleteBinLine, RiShieldUserLine, RiCloseLine,
@@ -88,7 +89,8 @@ function StatusBadge({ status }) {
 const EMPTY_FORM = { name: "", email: "", phone: "", role: "Viewer", status: "Active", password: "", joined: new Date().toISOString().split("T")[0] };
 
 export default function UsersPage() {
-  const [users, setUsers] = useState(SEED_USERS);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -99,6 +101,25 @@ export default function UsersPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const data = await adminUsersApi.list();
+      const list = (Array.isArray(data) ? data : (data?.data || [])).map((u) => ({
+        ...u,
+        id: u._id,
+        name: u.name || u.username,
+        role: u.role || "user",
+        status: u.isBlocked ? "Suspended" : (u.status || "Active"),
+        joined: u.createdAt ? new Date(u.createdAt).toISOString().split("T")[0] : "",
+      }));
+      setUsers(list);
+    } catch (e) {
+      setUsers(SEED_USERS);
+    } finally { setLoading(false); }
+  };
+  useEffect(() => { fetchUsers(); }, []);
 
   const filtered = users.filter(u => {
     const q = search.toLowerCase();
@@ -112,18 +133,27 @@ export default function UsersPage() {
   const openEdit = (u) => { setEditUser(u); setForm({ ...u, password: "" }); setShowModal(true); setShowPass(false); };
   const closeModal = () => { setShowModal(false); setEditUser(null); };
 
-  const saveUser = () => {
+  const saveUser = async () => {
     if (!form.name.trim() || !form.email.trim()) return;
     if (editUser) {
       setUsers(prev => prev.map(u => u.id === editUser.id ? { ...u, ...form } : u));
+      try {
+        await adminUsersApi.role({ userId: editUser.id, role: form.role.toLowerCase() });
+      } catch (e) { console.error("update failed", e); }
     } else {
-      const newU = { ...form, id: Date.now(), lastActive: new Date().toISOString(), avatar: null };
-      setUsers(prev => [...prev, newU]);
+      const tempId = `tmp-${Date.now()}`;
+      setUsers(prev => [...prev, { ...form, id: tempId, lastActive: new Date().toISOString() }]);
+      // Backend doesn't have a /admin/users POST in spec — role can be set once registered
+      alert("To add a user, ask them to sign up via /auth/create-account, then update their role here.");
     }
     closeModal();
   };
 
-  const deleteUser = (id) => { setUsers(prev => prev.filter(u => u.id !== id)); setDeleteConfirm(null); };
+  const deleteUser = async (id) => {
+    setUsers(prev => prev.filter(u => u.id !== id));
+    setDeleteConfirm(null);
+    try { await adminUsersApi.remove(id); } catch (e) { console.error("delete failed", e); }
+  };
 
   const toggleSelect = (id) => setSelectedIds(prev =>
     prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
@@ -156,7 +186,7 @@ export default function UsersPage() {
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button
-            onClick={() => setUsers(SEED_USERS)}
+            onClick={fetchUsers}
             style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "1px solid #e2e8f0", borderRadius: 8, padding: "7px 12px", cursor: "pointer", color: "#64748b", fontSize: 12 }}
           >
             <RiRefreshLine size={14} /> Refresh

@@ -20,6 +20,7 @@ import {
   FiUpload, FiHelpCircle, FiSearch, FiFileText, FiChevronDown
 } from 'react-icons/fi';
 import axios from 'axios';
+import { blogApi, mediaApi, categoriesApi } from '../../services/api';
 
 // ─── SERP PREVIEW ────────────────────────────────────────────────
 const SerpPreview = ({ title, desc, slug }) => (
@@ -151,7 +152,12 @@ const CharCount = ({ current, max }) => {
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [imgPreview, setImgPreview] = useState(null);
+  const [cats, setCats] = useState([]);
   const imgRef = useRef();
+
+  useEffect(() => {
+    categoriesApi.list().then((d) => setCats(Array.isArray(d) ? d : (d?.data || []))).catch(() => setCats([]));
+  }, []);
 
   const [form, setForm] = useState({
     title: '', slug: '',
@@ -209,10 +215,10 @@ const CharCount = ({ current, max }) => {
     const preview = URL.createObjectURL(file);
     setImgPreview(preview);
     const formData = new FormData();
-    formData.append('image', file);
+    formData.append('file', file);
     try {
-      const { data } = await axios.post('/media/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      if (data.success) set('featuredImage', data.data.url);
+      const data = await mediaApi.upload(formData);
+      if (data?.url) set('featuredImage', data.url);
     } catch { }
   };
 
@@ -247,7 +253,7 @@ const CharCount = ({ current, max }) => {
   const saveDraft = async () => {
     setSaving(true);
     try {
-      await axios.post('/blog/posts', { ...buildPayload(), status: 'draft' });
+      await blogApi.create({ ...buildPayload(), status: 'draft' });
     } catch { } finally {
       setSaving(false);
     }
@@ -258,7 +264,7 @@ const CharCount = ({ current, max }) => {
     if (!form.category) return alert('Please select a category.');
     setPublishing(true);
     try {
-      await axios.post('/blog/posts', { ...buildPayload(), status: 'published' });
+      await blogApi.create({ ...buildPayload(), status: 'published' });
       navigate('/dashboard/blog');
     } catch { setPublishing(false); }
   };
@@ -532,11 +538,18 @@ const CharCount = ({ current, max }) => {
                 <select value={form.category} onChange={e => set('category', e.target.value)}
                   className="w-full text-xs px-3 py-2 border border-gray-200 rounded-lg outline-none focus:border-[#235056]">
                   <option value="">Select category</option>
-                  <option value="next-gen-web-development">Next gen web development</option>
-                  <option value="ai-and-automation">AI and automation</option>
-                  <option value="web-3-development">Web 3 development</option>
-                  <option value="technical-seo">Technical SEO</option>
-                  <option value="case-studies">Case studies</option>
+                  {cats.length === 0 && (
+                    <>
+                      <option value="next-gen-web-development">Next gen web development</option>
+                      <option value="ai-and-automation">AI and automation</option>
+                      <option value="web-3-development">Web 3 development</option>
+                      <option value="technical-seo">Technical SEO</option>
+                      <option value="case-studies">Case studies</option>
+                    </>
+                  )}
+                  {cats.map((c) => (
+                    <option key={c._id} value={c._id || c.slug}>{c.name || c.title}</option>
+                  ))}
                 </select>
               </div>
               <div>

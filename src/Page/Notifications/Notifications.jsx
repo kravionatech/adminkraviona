@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { notificationsApi } from "../../services/api";
 import {
   FiBell, FiCheck, FiTrash2, FiSettings, FiFilter,
   FiUser, FiMail, FiFileText, FiAlertCircle, FiStar,
@@ -63,6 +64,16 @@ export default function Notifications() {
   const [showPrefs, setShowPrefs] = useState(false);
   const [prefs, setPrefs] = useState({ lead: true, message: true, alert: true, system: true, blog: false, newsletter: true });
   const [selected, setSelected] = useState([]);
+
+  useEffect(() => {
+    notificationsApi.list({ limit: 100 }).then((d) => {
+      const list = (Array.isArray(d) ? d : (d?.data || [])).map((n) => ({
+        ...n, id: n._id, read: n.isRead,
+        time: n.createdAt ? new Date(n.createdAt).toLocaleString() : "",
+      }));
+      if (list.length) setItems(list);
+    }).catch(() => null);
+  }, []);
 
   const unreadCount = items.filter(i => !i.read).length;
 
