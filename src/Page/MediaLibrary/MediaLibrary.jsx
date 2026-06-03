@@ -7,20 +7,7 @@ import {
 } from "react-icons/fi";
 import { mediaApi } from "../../services/api";
 
-const MOCK_FILES = [
-  { id: 1, name: "hero-banner.jpg", type: "image", size: "2.4 MB", dims: "1920×1080", date: "2 hours ago", url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&q=60", starred: true, folder: "Marketing" },
-  { id: 2, name: "team-photo.png", type: "image", size: "3.1 MB", dims: "2400×1600", date: "Yesterday", url: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=400&q=60", starred: false, folder: "Team" },
-  { id: 3, name: "product-demo.mp4", type: "video", size: "45.2 MB", dims: "1920×1080", date: "3 days ago", url: null, starred: true, folder: "Products" },
-  { id: 4, name: "brand-guide.pdf", type: "document", size: "1.8 MB", dims: "—", date: "1 week ago", url: null, starred: false, folder: "Brand" },
-  { id: 5, name: "service-icon-01.svg", type: "image", size: "24 KB", dims: "512×512", date: "1 week ago", url: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400&q=60", starred: false, folder: "Icons" },
-  { id: 6, name: "case-study-cover.jpg", type: "image", size: "1.2 MB", dims: "1200×628", date: "2 weeks ago", url: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&q=60", starred: false, folder: "Marketing" },
-  { id: 7, name: "promo-video.mp4", type: "video", size: "78.5 MB", dims: "3840×2160", date: "2 weeks ago", url: null, starred: false, folder: "Products" },
-  { id: 8, name: "terms-of-service.pdf", type: "document", size: "320 KB", dims: "—", date: "1 month ago", url: null, starred: false, folder: "Legal" },
-  { id: 9, name: "logo-dark.png", type: "image", size: "156 KB", dims: "800×200", date: "1 month ago", url: "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=400&q=60", starred: true, folder: "Brand" },
-  { id: 10, name: "blog-thumbnail.jpg", type: "image", size: "890 KB", dims: "1200×675", date: "1 month ago", url: "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=400&q=60", starred: false, folder: "Blog" },
-  { id: 11, name: "pricing-table.png", type: "image", size: "540 KB", dims: "1600×900", date: "2 months ago", url: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&q=60", starred: false, folder: "Marketing" },
-  { id: 12, name: "explainer-video.mp4", type: "video", size: "120 MB", dims: "1920×1080", date: "2 months ago", url: null, starred: false, folder: "Products" },
-];
+// Mock files removed
 
 const TYPE_COLORS = {
   image: { bg: "#EEF6FF", text: "#1D6FD8", icon: <FiImage size={13} /> },
@@ -39,7 +26,7 @@ export default function MediaLibrary() {
   const [preview, setPreview] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [sortBy, setSortBy] = useState("date");
-  const [files, setFiles] = useState(MOCK_FILES);
+  const [files, setFiles] = useState([]);
 
   useEffect(() => {
     mediaApi.list({ limit: 200 }).then((d) => {
@@ -49,8 +36,12 @@ export default function MediaLibrary() {
         size: f.size ? `${(f.size / 1024).toFixed(0)} KB` : "",
         date: f.createdAt,
       }));
-      if (list.length) setFiles(list);
-    }).catch(() => null);
+      if (list.length) {
+        setFiles(list);
+      } else {
+        setFiles([]);
+      }
+    }).catch(() => setFiles([]));
   }, []);
   const [ctxMenu, setCtxMenu] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
@@ -194,7 +185,12 @@ export default function MediaLibrary() {
 
       {/* Content */}
       <div style={{ padding: "0 28px 28px" }}>
-        {sorted.length === 0 ? (
+        {files.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "60px 0", color: "#A0AEC0" }}>
+            <FiFolder size={40} style={{ marginBottom: 12, opacity: 0.4 }} />
+            <p style={{ margin: 0, fontSize: 15, fontWeight: 500 }}>Data not available</p>
+          </div>
+        ) : sorted.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 0", color: "#A0AEC0" }}>
             <FiFolder size={40} style={{ marginBottom: 12, opacity: 0.4 }} />
             <p style={{ margin: 0, fontSize: 15 }}>No files found</p>

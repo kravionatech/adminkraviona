@@ -17,13 +17,16 @@ export default function Auth() {
   const [error, setError] = useState("");
 
   const onSuccess = (data) => {
-    if (data?.accessToken) {
+    const token = data?.token || data;
+    if (token?.accessToken) {
       tokenStore.set({
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
-        user: data.user,
+        accessToken: token.accessToken,
+        refreshToken: token.refreshToken,
+        user: data.user || token.user || null,
       });
       navigate("/dashboard", { replace: true });
+    } else {
+      setError("Login succeeded, but token was not received.");
     }
   };
 
@@ -42,10 +45,7 @@ export default function Auth() {
     e?.preventDefault?.();
     setError(""); setBusy(true);
     try {
-      // login-otp on this backend *also* returns tokens once OTP is verified.
-      // Step 1: request OTP via /auth/resend-otp-like flow
-      await authApi.signUp?.({ identifier }).catch(() => null); // no-op; just keep signature
-      // Use loginOtp without otp to request, then with otp to verify.
+      await authApi.resendOtp({ identifier });
       setStep("otp");
     } catch (err) {
       setError(err?.message || "Failed to send OTP");

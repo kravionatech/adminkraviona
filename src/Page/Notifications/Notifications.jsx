@@ -7,20 +7,6 @@ import {
   FiChevronDown, FiX, FiZap, FiMessageSquare, FiRefreshCw
 } from "react-icons/fi";
 
-const INITIAL = [
-  { id: 1, type: "lead", title: "New lead from Rahul Sharma", desc: "Interested in MERN Stack service — submitted via contact form.", time: "2 min ago", read: false, pinned: true, avatar: "RS", avatarColor: "#EEF6FF", avatarText: "#1D6FD8" },
-  { id: 2, type: "system", title: "Scheduled backup completed", desc: "Your weekly database backup was successful. 3.2 GB saved.", time: "18 min ago", read: false, pinned: false, avatar: null, avatarColor: null, avatarText: null },
-  { id: 3, type: "message", title: "New message from Priya Singh", desc: "\"Hi, can we schedule a call this week to discuss the SEO proposal?\"", time: "1 hour ago", read: false, pinned: false, avatar: "PS", avatarColor: "#FFF0F6", avatarText: "#C8203E" },
-  { id: 4, type: "alert", title: "High server CPU usage detected", desc: "CPU usage spiked to 89% on Production Server #2. Check now.", time: "2 hours ago", read: false, pinned: false, avatar: null, avatarColor: null, avatarText: null },
-  { id: 5, type: "lead", title: "Lead status updated", desc: "Sanya Kapoor moved from Contacted → Closed Won on SaaS Dev.", time: "3 hours ago", read: true, pinned: false, avatar: "SK", avatarColor: "#F0FAF4", avatarText: "#1A7A4A" },
-  { id: 6, type: "blog", title: "Blog post published", desc: "\"Ultimate MERN Stack Roadmap 2026\" is now live and indexed.", time: "5 hours ago", read: true, pinned: false, avatar: null, avatarColor: null, avatarText: null },
-  { id: 7, type: "newsletter", title: "Newsletter sent successfully", desc: "Campaign \"AI Tools Weekly #12\" delivered to 1,248 subscribers.", time: "Yesterday", read: true, pinned: false, avatar: null, avatarColor: null, avatarText: null },
-  { id: 8, type: "message", title: "New message from Amit Verma", desc: "\"Thanks for the proposal. I'll review and get back to you shortly.\"", time: "Yesterday", read: true, pinned: false, avatar: "AV", avatarColor: "#FFFBEB", avatarText: "#B45309" },
-  { id: 9, type: "system", title: "SSL Certificate renewed", desc: "SSL for kraviona.com has been automatically renewed for 1 year.", time: "2 days ago", read: true, pinned: false, avatar: null, avatarColor: null, avatarText: null },
-  { id: 10, type: "alert", title: "New admin login detected", desc: "Login from IP 192.168.1.104 · Chrome · Mumbai, India.", time: "2 days ago", read: true, pinned: false, avatar: null, avatarColor: null, avatarText: null },
-  { id: 11, type: "lead", title: "New lead from Rohan Das", desc: "Interested in Node.js service — marked as New.", time: "3 days ago", read: true, pinned: false, avatar: "RD", avatarColor: "#F5F0FF", avatarText: "#6D28D9" },
-  { id: 12, type: "blog", title: "Blog post hit 200+ views", desc: "\"10 Benefits of AI\" reached 200 views milestone today.", time: "4 days ago", read: true, pinned: false, avatar: null, avatarColor: null, avatarText: null },
-];
 
 const TYPE_META = {
   lead:       { label: "Lead",       icon: <FiUser size={14} />,         bg: "#EEF6FF", text: "#1D6FD8",  dot: "#2563EB" },
@@ -59,7 +45,7 @@ function NotiIcon({ item }) {
 }
 
 export default function Notifications() {
-  const [items, setItems] = useState(INITIAL);
+  const [items, setItems] = useState([]);
   const [tab, setTab] = useState("All");
   const [showPrefs, setShowPrefs] = useState(false);
   const [prefs, setPrefs] = useState({ lead: true, message: true, alert: true, system: true, blog: false, newsletter: true });
@@ -71,8 +57,10 @@ export default function Notifications() {
         ...n, id: n._id, read: n.isRead,
         time: n.createdAt ? new Date(n.createdAt).toLocaleString() : "",
       }));
-      if (list.length) setItems(list);
-    }).catch(() => null);
+      setItems(list);
+    }).catch(() => {
+      setItems([]);
+    });
   }, []);
 
   const unreadCount = items.filter(i => !i.read).length;
@@ -154,7 +142,12 @@ export default function Notifications() {
       {/* Content */}
       <div style={{ padding: "20px 28px", maxWidth: 860 }}>
 
-        {filtered.length === 0 ? (
+        {items.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "80px 0", color: "#A0AEC0" }}>
+            <FiBell size={44} style={{ opacity: 0.25, marginBottom: 14 }} />
+            <p style={{ margin: 0, fontSize: 16, fontWeight: 600, color: "#9099A8" }}>Data not available</p>
+          </div>
+        ) : filtered.length === 0 ? (
           <div style={{ textAlign: "center", padding: "80px 0", color: "#A0AEC0" }}>
             <FiBell size={44} style={{ opacity: 0.25, marginBottom: 14 }} />
             <p style={{ margin: 0, fontSize: 16, fontWeight: 600, color: "#9099A8" }}>No notifications here</p>

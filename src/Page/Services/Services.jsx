@@ -26,20 +26,7 @@ const BADGE_COLORS = {
   'New':          { bg: '#EEEDFE', text: '#3C3489' },
 };
 
-// ─── MOCK DATA ────────────────────────────────────────────────────
-const MOCK = [
-  { _id:'1', icon:'⚡', title:'MERN stack development',       slug:'mern-stack-development',       category:'web-development',      shortDesc:'MongoDB, Express, React & Node.js full-stack apps built for scale.', badge:'Top rated',    isActive:true,  order:1,  features:['MongoDB schema design','Express REST API','React.js frontend','Node.js backend','JWT auth','Cloud deployment'], technologies:['MongoDB','Express.js','React.js','Node.js'], faqs:[{question:'How long does it take?',answer:'4–8 weeks depending on scope.'}], seo:{metaTitle:'',metaDescription:'',canonicalUrl:''} },
-  { _id:'2', icon:'💻', title:'Full-stack development',        slug:'full-stack-development',        category:'web-development',      shortDesc:'End-to-end web solutions from database to pixel-perfect UI.',           badge:'',             isActive:true,  order:2,  features:['Architecture planning','Frontend & backend','API design','Database setup','DevOps','Testing & QA'], technologies:['React','Node.js','PostgreSQL','Docker'], faqs:[], seo:{} },
-  { _id:'3', icon:'⚛',  title:'React.js development',          slug:'react-development',             category:'web-development',      shortDesc:'High-performance SPAs and Next.js apps with SSR.',                      badge:'',             isActive:true,  order:3,  features:['Component library','State management','SSR/SSG','Performance','Testing','Accessibility'], technologies:['React','Next.js','TypeScript','Redux'], faqs:[], seo:{} },
-  { _id:'4', icon:'🟢', title:'Node.js development',           slug:'nodejs-development',            category:'web-development',      shortDesc:'Scalable APIs and real-time backend systems.',                          badge:'',             isActive:true,  order:4,  features:['REST APIs','GraphQL','WebSockets','Microservices','Auth systems','Cloud deploy'], technologies:['Node.js','Express','Socket.io','Redis'], faqs:[], seo:{} },
-  { _id:'5', icon:'⚙️', title:'Backend development',           slug:'backend-development',           category:'backend-architecture', shortDesc:'Robust, secure server-side logic and system design.',                   badge:'',             isActive:true,  order:5,  features:['System architecture','API design','Auth & RBAC','Caching','Queues','Monitoring'], technologies:['Node.js','PostgreSQL','Redis','RabbitMQ'], faqs:[], seo:{} },
-  { _id:'6', icon:'🔌', title:'API development',               slug:'api-development',               category:'backend-architecture', shortDesc:'Custom RESTful and GraphQL APIs built for performance.',                badge:'',             isActive:true,  order:6,  features:['RESTful APIs','GraphQL','API docs','Versioning','Rate limiting','Testing'], technologies:['Express','GraphQL','Swagger','Jest'], faqs:[], seo:{} },
-  { _id:'7', icon:'🗄️', title:'Database architecture',        slug:'database-architecture',         category:'backend-architecture', shortDesc:'Optimised MongoDB, PostgreSQL & Redis database structures.',            badge:'',             isActive:true,  order:7,  features:['Schema design','Indexing','Query optimisation','Replication','Backup','Migration'], technologies:['MongoDB','PostgreSQL','Redis','Mongoose'], faqs:[], seo:{} },
-  { _id:'8', icon:'☁️', title:'SaaS development',              slug:'saas-development',              category:'backend-architecture', shortDesc:'Scalable multi-tenant SaaS platforms with billing & auth.',            badge:'',             isActive:true,  order:8,  features:['Multi-tenancy','Subscription billing','OAuth','Analytics','Admin panel','Scalability'], technologies:['Node.js','Stripe','Auth0','AWS'], faqs:[], seo:{} },
-  { _id:'9', icon:'📈', title:'Technical SEO',                 slug:'technical-seo',                 category:'performance-ai',       shortDesc:'Core Web Vitals, crawlability, and structured data.',                  badge:'Most popular', isActive:true,  order:9,  features:['Site audit','Core Web Vitals','Schema markup','Sitemap','Robots.txt','Crawl fix'], technologies:['Screaming Frog','PageSpeed','Search Console','Ahrefs'], faqs:[{question:'How soon will I see results?',answer:'Typically 60–90 days for ranking improvements.'}], seo:{} },
-  { _id:'10',icon:'🚀', title:'Web performance optimisation',  slug:'web-performance-optimization',  category:'performance-ai',       shortDesc:'Lighthouse 90+ scores and real-user speed improvements.',             badge:'',             isActive:true,  order:10, features:['Lighthouse audit','Image optimisation','Code splitting','CDN setup','Lazy loading','Caching'], technologies:['Webpack','Next.js','Cloudinary','Vercel'], faqs:[], seo:{} },
-  { _id:'11',icon:'🤖', title:'AI automation',                 slug:'ai-automation',                 category:'performance-ai',       shortDesc:'LLM integration, AI workflows, and smart automation.',                 badge:'New',          isActive:true,  order:11, features:['LLM integration','Prompt engineering','AI pipelines','Data processing','Chatbots','Embeddings'], technologies:['OpenAI','LangChain','Pinecone','Python'], faqs:[], seo:{} },
-];
+// Mock data removed
 
 // ─── EMPTY FORM ───────────────────────────────────────────────────
 const EMPTY = {
@@ -428,7 +415,7 @@ export default function Services() {
       const arr = Array.isArray(list) ? list : (list?.data || list || []);
       setServices(arr.sort((a, b) => (a.order || 0) - (b.order || 0)));
     } catch {
-      setServices(MOCK);
+      setServices([]);
     } finally {
       setLoading(false);
     }
@@ -623,6 +610,8 @@ export default function Services() {
                     <div className="h-2 bg-gray-100 rounded w-2/3" />
                   </div>
                 ))
+              ) : services.length === 0 ? (
+                <div className="col-span-3 text-center py-10 text-sm font-medium text-gray-400">Data not available</div>
               ) : filtered.length === 0 ? (
                 <div className="col-span-3 text-center py-10 text-xs text-gray-400">No services match this filter</div>
               ) : (
@@ -669,6 +658,14 @@ export default function Services() {
                       ))}
                     </tr>
                   ))
+                ) : services.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="text-center py-10 text-sm font-medium text-gray-400">Data not available</td>
+                  </tr>
+                ) : filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="text-center py-10 text-xs text-gray-400">No services match this filter</td>
+                  </tr>
                 ) : filtered.map(s => (
                   <tr key={s._id} className="border-b border-gray-50 hover:bg-gray-50">
                     <td className="px-3 py-2.5">

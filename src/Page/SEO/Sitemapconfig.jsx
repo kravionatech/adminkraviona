@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { settingsApi } from "../../services/api";
 import {
   FiMap, FiSave, FiRefreshCw, FiExternalLink, FiPlus, FiTrash2,
   FiToggleLeft, FiToggleRight, FiChevronDown, FiChevronUp,
@@ -8,18 +9,7 @@ import {
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
-const DEFAULT_ROUTES = [
-  { id: 1, path: "/",               label: "Home",          priority: "1.0", changefreq: "daily",   included: true  },
-  { id: 2, path: "/blog",           label: "Blog",          priority: "0.9", changefreq: "daily",   included: true  },
-  { id: 3, path: "/services",       label: "Services",      priority: "0.8", changefreq: "weekly",  included: true  },
-  { id: 4, path: "/portfolio",      label: "Portfolio",     priority: "0.8", changefreq: "weekly",  included: true  },
-  { id: 5, path: "/case-studies",   label: "Case Studies",  priority: "0.7", changefreq: "weekly",  included: true  },
-  { id: 6, path: "/about",          label: "About",         priority: "0.6", changefreq: "monthly", included: true  },
-  { id: 7, path: "/contact",        label: "Contact",       priority: "0.6", changefreq: "monthly", included: true  },
-  { id: 8, path: "/pricing",        label: "Pricing",       priority: "0.7", changefreq: "weekly",  included: true  },
-  { id: 9, path: "/admin",          label: "Admin Panel",   priority: "0.1", changefreq: "never",   included: false },
-  { id: 10, path: "/login",         label: "Login",         priority: "0.1", changefreq: "never",   included: false },
-];
+
 
 const FREQ_OPTIONS = ["always", "hourly", "daily", "weekly", "monthly", "yearly", "never"];
 const PRIORITY_OPTIONS = ["1.0", "0.9", "0.8", "0.7", "0.6", "0.5", "0.4", "0.3", "0.2", "0.1"];
@@ -83,8 +73,16 @@ function StatusBadge({ included }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function SitemapConfig() {
-  const [routes, setRoutes] = useState(DEFAULT_ROUTES);
+  const [routes, setRoutes] = useState([]);
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    settingsApi.public().then((s) => {
+      if (s && Array.isArray(s.seo_sitemap_routes)) {
+        setRoutes(s.seo_sitemap_routes);
+      }
+    }).catch(() => null);
+  }, []);
 
   // General settings state
   const [sitemapEnabled, setSitemapEnabled] = useState(true);
@@ -120,9 +118,14 @@ export default function SitemapConfig() {
     setNewLabel("");
   };
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+  const handleSave = async () => {
+    try {
+      await settingsApi.single("seo_sitemap_routes", { value: routes });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const includedCount = routes.filter((r) => r.included).length;
@@ -219,46 +222,54 @@ export default function SitemapConfig() {
               </tr>
             </thead>
             <tbody>
-              {routes.map((r) => (
-                <tr key={r.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                  <td className="py-3 pr-4">
-                    <div className="font-medium text-gray-700">{r.label}</div>
-                    <div className="text-xs text-gray-400 font-mono">{r.path}</div>
-                  </td>
-                  <td className="py-3 pr-4">
-                    <select
-                      value={r.priority}
-                      onChange={(e) => updateRoute(r.id, "priority", e.target.value)}
-                      className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:border-[#E8622A]"
-                    >
-                      {PRIORITY_OPTIONS.map((p) => <option key={p}>{p}</option>)}
-                    </select>
-                  </td>
-                  <td className="py-3 pr-4">
-                    <select
-                      value={r.changefreq}
-                      onChange={(e) => updateRoute(r.id, "changefreq", e.target.value)}
-                      className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:border-[#E8622A]"
-                    >
-                      {FREQ_OPTIONS.map((f) => <option key={f}>{f}</option>)}
-                    </select>
-                  </td>
-                  <td className="py-3 pr-4 text-center">
-                    <StatusBadge included={r.included} />
-                  </td>
-                  <td className="py-3 pr-4 text-center">
-                    <Toggle value={r.included} onChange={(v) => updateRoute(r.id, "included", v)} />
-                  </td>
-                  <td className="py-3 text-right">
-                    <button
-                      onClick={() => deleteRoute(r.id)}
-                      className="text-gray-300 hover:text-red-400 transition-colors"
-                    >
-                      <FiTrash2 size={14} />
-                    </button>
+              {routes.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center text-gray-400 py-8">
+                    Data not available
                   </td>
                 </tr>
-              ))}
+              ) : (
+                routes.map((r) => (
+                  <tr key={r.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                    <td className="py-3 pr-4">
+                      <div className="font-medium text-gray-700">{r.label}</div>
+                      <div className="text-xs text-gray-400 font-mono">{r.path}</div>
+                    </td>
+                    <td className="py-3 pr-4">
+                      <select
+                        value={r.priority}
+                        onChange={(e) => updateRoute(r.id, "priority", e.target.value)}
+                        className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:border-[#E8663D]"
+                      >
+                        {PRIORITY_OPTIONS.map((p) => <option key={p}>{p}</option>)}
+                      </select>
+                    </td>
+                    <td className="py-3 pr-4">
+                      <select
+                        value={r.changefreq}
+                        onChange={(e) => updateRoute(r.id, "changefreq", e.target.value)}
+                        className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 focus:outline-none focus:border-[#E8663D]"
+                      >
+                        {FREQ_OPTIONS.map((f) => <option key={f}>{f}</option>)}
+                      </select>
+                    </td>
+                    <td className="py-3 pr-4 text-center">
+                      <StatusBadge included={r.included} />
+                    </td>
+                    <td className="py-3 pr-4 text-center">
+                      <Toggle value={r.included} onChange={(v) => updateRoute(r.id, "included", v)} />
+                    </td>
+                    <td className="py-3 text-right">
+                      <button
+                        onClick={() => deleteRoute(r.id)}
+                        className="text-gray-300 hover:text-red-400 transition-colors"
+                      >
+                        <FiTrash2 size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

@@ -34,28 +34,16 @@ function useApiLog() {
   return log;
 }
 
-// ─── MOCK DATA (fallback when API is down) ────────────────────────
-const MOCK = {
-  leads: { total: 247, new: 18, contacted: 41, qualified: 29, closed_won: 63, thisMonth: 18, chart: [12, 18, 24, 15, 31, 27, 19, 38, 42, 29, 35, 18] },
-  posts: { total: 9, published: 9, draft: 2, totalViews: 1125 },
-  messages: { total: 34, unread: 7 },
-  subscribers: { total: 182, active: 174, thisMonth: 14 },
-  projects: { total: 8, featured: 3 },
-  notifications: { unread: 5 },
-  recentLeads: [
-    { _id: '1', name: 'Rahul Sharma',  service: 'MERN Stack',     status: 'new',       createdAt: '2026-05-31' },
-    { _id: '2', name: 'Priya Singh',   service: 'Technical SEO',  status: 'qualified', createdAt: '2026-05-30' },
-    { _id: '3', name: 'Amit Verma',    service: 'React.js',       status: 'contacted', createdAt: '2026-05-29' },
-    { _id: '4', name: 'Sanya Kapoor',  service: 'SaaS Dev',       status: 'closed_won',createdAt: '2026-05-28' },
-    { _id: '5', name: 'Rohan Das',     service: 'Node.js',        status: 'new',       createdAt: '2026-05-27' },
-  ],
-  topPosts: [
-    { _id: '1', title: 'Ultimate MERN Stack Roadmap 2026', views: 267, status: 'published' },
-    { _id: '2', title: '10 Benefits of AI',                views: 177, status: 'published' },
-    { _id: '3', title: '10 Web 3.0 Benefits',              views: 138, status: 'published' },
-    { _id: '4', title: 'AI-Driven SEO 2026',               views: 131, status: 'published' },
-    { _id: '5', title: 'AI Revolutionizing Dev',           views: 110, status: 'published' },
-  ],
+// ─── EMPTY STATE DATA (when no data in API) ────────────────────────
+const EMPTY_DATA = {
+  leads: { total: 0, new: 0, contacted: 0, qualified: 0, closed_won: 0, thisMonth: 0, chart: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+  posts: { total: 0, published: 0, draft: 0, totalViews: 0 },
+  messages: { total: 0, unread: 0 },
+  subscribers: { total: 0, active: 0, thisMonth: 0 },
+  projects: { total: 0, featured: 0 },
+  notifications: { unread: 0 },
+  recentLeads: [],
+  topPosts: []
 };
 
 const STATUS_STYLES = {
@@ -127,9 +115,9 @@ export default function Dashboard() {
     const allOk = results.every((r) => r.ok);
     if (allOk) {
       const [leads, msgs, posts, subs, projects, notifs] = results;
-      const totalPosts = posts.data?.total || (posts.data?.data?.length || 0);
-      const totalSubs  = subs.data?.total  || (subs.data?.data?.length || 0);
-      const totalProj  = projects.data?.data?.length || 0;
+      const totalPosts = posts.data?.total || (posts.data?.data?.length || posts.data?.length || 0);
+      const totalSubs  = subs.data?.total  || (subs.data?.data?.length || subs.data?.length || 0);
+      const totalProj  = projects.data?.data?.length || projects.data?.length || 0;
       setData({
         leads: leads.data?.data || leads.data,
         posts: { total: totalPosts, published: totalPosts, draft: 0, totalViews: 0 },
@@ -137,18 +125,18 @@ export default function Dashboard() {
         subscribers: { total: totalSubs, active: totalSubs, thisMonth: 0 },
         projects: { total: totalProj, featured: 0 },
         notifications: { unread: notifs.data?.totalUnread || 0 },
-        recentLeads: (msgs.data?.data || []).map((m) => ({
+        recentLeads: (msgs.data?.data || msgs.data || []).map((m) => ({
           _id: m._id, name: m.name || m.firstName || 'Lead',
           service: m.sourceService || m.subject || 'General',
           status: m.status || 'new', createdAt: m.createdAt,
         })),
-        topPosts: (posts.data?.data || []).map((p) => ({
+        topPosts: (posts.data?.data || posts.data || []).map((p) => ({
           _id: p._id, title: p.title, views: p.views || 0, status: p.status,
         })),
       });
       setApiStatus('ok');
     } else {
-      setData(MOCK);
+      setData(EMPTY_DATA);
       setApiStatus('error');
     }
     setLastUpdated(new Date().toLocaleTimeString('en-IN'));
@@ -156,11 +144,11 @@ export default function Dashboard() {
 
   useEffect(() => { fetchAll(); }, []);
 
-  const d = data ?? MOCK;
+  const d = data ?? EMPTY_DATA;
   const months = ['Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun'];
 
-  const chartSeries = d.leads?.chart || d.leadsChart || MOCK.leads.chart;
-  const leadsStats = d.leads || MOCK.leads;
+  const chartSeries = d.leads?.chart || d.leadsChart || EMPTY_DATA.leads.chart;
+  const leadsStats = d.leads || EMPTY_DATA.leads;
 
   const lineData = {
     labels: months,
@@ -210,7 +198,7 @@ export default function Dashboard() {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-full border border-gray-200 text-gray-500">
             <span className={`w-2 h-2 rounded-full ${apiStatus === 'ok' ? 'bg-green-500' : apiStatus === 'error' ? 'bg-red-400' : 'bg-amber-400'}`} />
-            {apiStatus === 'ok' ? 'API connected' : apiStatus === 'error' ? 'API error — mock data' : 'Connecting...'}
+            {apiStatus === 'ok' ? 'API connected' : apiStatus === 'error' ? 'API error — data not available' : 'Connecting...'}
           </div>
           <button onClick={fetchAll} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition">
             <FiRefreshCw size={12} /> Refresh
@@ -278,13 +266,21 @@ export default function Dashboard() {
                 </tr>
               </thead>
               <tbody>
-                {(d.recentLeads || []).map(l => (
-                  <tr key={l._id} className="border-b border-gray-50 hover:bg-gray-50">
-                    <td className="py-2 font-medium text-gray-800 truncate">{l.name}</td>
-                    <td className="py-2 text-gray-500 truncate">{l.service}</td>
-                    <td className="py-2"><StatusPill status={l.status} /></td>
+                {(d.recentLeads || []).length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="text-center py-6 text-gray-400 text-xs">
+                      Data not available
+                    </td>
                   </tr>
-                ))}
+                ) : (
+                  (d.recentLeads || []).map(l => (
+                    <tr key={l._id} className="border-b border-gray-50 hover:bg-gray-50">
+                      <td className="py-2 font-medium text-gray-800 truncate">{l.name}</td>
+                      <td className="py-2 text-gray-500 truncate">{l.service}</td>
+                      <td className="py-2"><StatusPill status={l.status} /></td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -303,13 +299,21 @@ export default function Dashboard() {
                 </tr>
               </thead>
               <tbody>
-                {(d.topPosts || []).map(p => (
-                  <tr key={p._id} className="border-b border-gray-50 hover:bg-gray-50">
-                    <td className="py-2 font-medium text-gray-800 truncate">{p.title}</td>
-                    <td className="py-2 text-gray-700 font-medium">{(p.views || 0).toLocaleString?.() || p.views}</td>
-                    <td className="py-2"><StatusPill status={p.status} /></td>
+                {(d.topPosts || []).length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="text-center py-6 text-gray-400 text-xs">
+                      Data not available
+                    </td>
                   </tr>
-                ))}
+                ) : (
+                  (d.topPosts || []).map(p => (
+                    <tr key={p._id} className="border-b border-gray-50 hover:bg-gray-50">
+                      <td className="py-2 font-medium text-gray-800 truncate">{p.title}</td>
+                      <td className="py-2 text-gray-700 font-medium">{(p.views || 0).toLocaleString?.() || p.views}</td>
+                      <td className="py-2"><StatusPill status={p.status} /></td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

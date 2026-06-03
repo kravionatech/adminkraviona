@@ -20,16 +20,7 @@ import {
 } from "react-icons/fi";
 import { HiOutlineSparkles } from "react-icons/hi2";
 
-const mockCategories = [
-  { id: 1, name: "Web Development", slug: "web-development", posts: 34, color: "#E8663D", description: "Frontend, backend, and full-stack web dev articles", status: "active", featured: true, createdAt: "Jan 12, 2025" },
-  { id: 2, name: "Technical SEO", slug: "technical-seo", posts: 21, color: "#3B82F6", description: "SEO strategies, audits, and technical improvements", status: "active", featured: false, createdAt: "Feb 3, 2025" },
-  { id: 3, name: "MERN Stack", slug: "mern-stack", posts: 18, color: "#10B981", description: "MongoDB, Express, React, Node.js tutorials", status: "active", featured: true, createdAt: "Mar 7, 2025" },
-  { id: 4, name: "UI/UX Design", slug: "ui-ux-design", posts: 15, color: "#8B5CF6", description: "Design systems, Figma, and user experience", status: "active", featured: false, createdAt: "Jan 22, 2025" },
-  { id: 5, name: "DevOps & Cloud", slug: "devops-cloud", posts: 12, color: "#F59E0B", description: "Docker, Kubernetes, AWS, CI/CD pipelines", status: "active", featured: false, createdAt: "Apr 1, 2025" },
-  { id: 6, name: "AI & Machine Learning", slug: "ai-ml", posts: 9, color: "#06B6D4", description: "AI tools, LLMs, Python ML frameworks", status: "draft", featured: false, createdAt: "May 15, 2025" },
-  { id: 7, name: "Freelancing Tips", slug: "freelancing-tips", posts: 7, color: "#EC4899", description: "Client management, proposals, and pricing", status: "active", featured: false, createdAt: "Feb 18, 2025" },
-  { id: 8, name: "Case Studies", slug: "case-studies", posts: 5, color: "#64748B", description: "Real project breakdowns and lessons learned", status: "draft", featured: false, createdAt: "Jun 1, 2025" },
-];
+// Mock categories removed
 
 const COLOR_OPTIONS = ["#E8663D","#3B82F6","#10B981","#8B5CF6","#F59E0B","#06B6D4","#EC4899","#64748B","#EF4444","#84CC16"];
 
@@ -268,7 +259,7 @@ export default function CategoriesPage() {
       }));
       setCategories(list);
     } catch (e) {
-      setCategories(mockCategories);
+      setCategories([]);
     } finally { setLoading(false); }
   };
   useEffect(() => { fetchCats(); }, []);
@@ -401,7 +392,14 @@ export default function CategoriesPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 ? (
+                {categories.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-16 text-gray-400 text-sm">
+                      <FiTag size={32} className="mx-auto mb-3 text-gray-200" />
+                      Data not available
+                    </td>
+                  </tr>
+                ) : filtered.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="text-center py-16 text-gray-400 text-sm">
                       <FiTag size={32} className="mx-auto mb-3 text-gray-200" />

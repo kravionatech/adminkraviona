@@ -7,7 +7,7 @@
 
 import axios from "axios";
 
-const BASE_URL = (import.meta?.env?.VITE_API_URL) || "http://localhost:5000/api";
+const BASE_URL = (import.meta?.env?.VITE_API_URL || "http://localhost:3123/api").trim();
 
 export const api = axios.create({
   baseURL: BASE_URL,
@@ -16,21 +16,21 @@ export const api = axios.create({
 });
 
 // ─── Token storage helpers (work even when localStorage is unavailable) ───
-const ACCESS_KEY  = "kra_access";
+const ACCESS_KEY = "kra_access";
 const REFRESH_KEY = "kra_refresh";
-const USER_KEY    = "kra_user";
+const USER_KEY = "kra_user";
 
 export const tokenStore = {
-  getAccess:  () => localStorage.getItem(ACCESS_KEY)  || "",
+  getAccess: () => localStorage.getItem(ACCESS_KEY) || "",
   getRefresh: () => localStorage.getItem(REFRESH_KEY) || "",
-  getUser:    () => {
+  getUser: () => {
     try { return JSON.parse(localStorage.getItem(USER_KEY) || "null"); }
     catch { return null; }
   },
   set: ({ accessToken, refreshToken, user }) => {
-    if (accessToken)  localStorage.setItem(ACCESS_KEY,  accessToken);
+    if (accessToken) localStorage.setItem(ACCESS_KEY, accessToken);
     if (refreshToken) localStorage.setItem(REFRESH_KEY, refreshToken);
-    if (user)         localStorage.setItem(USER_KEY, JSON.stringify(user));
+    if (user) localStorage.setItem(USER_KEY, JSON.stringify(user));
   },
   clear: () => {
     localStorage.removeItem(ACCESS_KEY);
@@ -104,7 +104,7 @@ api.interceptors.response.use(
 // We throw a clean Error when success is false, so callers can use try/catch.
 export const ok = (res) => res?.data;
 export const data = (res) => res?.data?.data;
-export const msg  = (res) => res?.data?.message || "";
+export const msg = (res) => res?.data?.message || "";
 
 export async function call(promise) {
   try {

@@ -14,15 +14,6 @@ const PROJECT_TYPES = [
   { value: "marketing",   label: "Marketing",   color: "#EC4899" },
 ];
 
-const SEED = [
-  { _id: "p1", title: "FinScale — Treasury Dashboard",     slug: "finscale-treasury",   client: "FinScale",    projectType: "saas",      year: 2025, thumbnail: "", isActive: true, featured: true, technologies: ["React", "Node.js", "MongoDB", "Stripe"], description: "Real-time treasury management dashboard for B2B fintech.",        liveUrl: "https://finscale.app", caseStudyUrl: "" },
-  { _id: "p2", title: "BoltCart — Headless Storefront",    slug: "boltcart-headless",   client: "BoltCart",    projectType: "ecommerce", year: 2025, thumbnail: "", isActive: true, featured: true, technologies: ["Next.js", "Shopify", "GraphQL"],         description: "Sub-1s page loads for high-traffic retail brand.",                  liveUrl: "https://boltcart.com", caseStudyUrl: "" },
-  { _id: "p3", title: "Northwave — Booking Platform",      slug: "northwave-booking",   client: "Northwave",   projectType: "web-app",   year: 2024, thumbnail: "", isActive: true, featured: false, technologies: ["MERN", "Twilio", "Stripe"],              description: "Multi-tenant booking platform for hospitality groups.",            liveUrl: "https://northwave.app", caseStudyUrl: "" },
-  { _id: "p4", title: "Lumen — Marketing Site",            slug: "lumen-marketing",     client: "Lumen",       projectType: "marketing", year: 2024, thumbnail: "", isActive: true, featured: false, technologies: ["Next.js", "Sanity CMS", "Tailwind"],     description: "Lighthouse 100 marketing site for B2B analytics startup.",          liveUrl: "https://lumen.ai", caseStudyUrl: "" },
-  { _id: "p5", title: "QuickServ — Workforce App",         slug: "quickserv-mobile",    client: "QuickServ",   projectType: "mobile-app", year: 2024, thumbnail: "", isActive: true, featured: false, technologies: ["React Native", "Node.js", "Redis"],     description: "Field-worker scheduling app for facility-management firms.",        liveUrl: "", caseStudyUrl: "" },
-  { _id: "p6", title: "GreenLeaf — Subscription Engine",   slug: "greenleaf-saas",      client: "GreenLeaf",   projectType: "saas",      year: 2025, thumbnail: "", isActive: true, featured: true, technologies: ["MERN", "Stripe Billing", "RabbitMQ"],    description: "Subscription billing engine for D2C plant-care brand.",            liveUrl: "https://greenleaf.app", caseStudyUrl: "" },
-];
-
 const EMPTY = {
   title: "", slug: "", client: "", projectType: "web-app", year: 2026,
   thumbnail: "", isActive: true, featured: false, technologies: [""],
@@ -30,21 +21,21 @@ const EMPTY = {
 };
 
 export default function Portfolio() {
-  const [items, setItems] = useState(SEED);
+  const [items, setItems] = useState([]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
 
   useEffect(() => {
     portfolioApi.list({ limit: 200 }).then((d) => {
       const list = Array.isArray(d) ? d : (d?.data || []);
-      if (list.length) setItems(list);
-    }).catch(() => null);
+      setItems(list);
+    }).catch(() => setItems([]));
   }, []);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY);
 
   const filtered = items.filter((i) => {
-    const matchesSearch = !search || i.title.toLowerCase().includes(search.toLowerCase()) || i.client.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = !search || (i.title || "").toLowerCase().includes(search.toLowerCase()) || (i.client || "").toLowerCase().includes(search.toLowerCase());
     const matchesFilter = filter === "all" || i.projectType === filter;
     return matchesSearch && matchesFilter;
   });
@@ -53,16 +44,41 @@ export default function Portfolio() {
   const openEdit   = (it)  => { setForm({ ...it }); setEditing(it._id); };
   const close      = ()    => { setEditing(null); setForm(EMPTY); };
 
-  const save = () => {
-    if (editing === "new") {
-      setItems([...items, { ...form, _id: `p${Date.now()}` }]);
-    } else {
-      setItems(items.map((i) => i._id === editing ? { ...form } : i));
+  const save = async () => {
+    try {
+      if (editing === "new") {
+        const added = await portfolioApi.create(form);
+        setItems([...items, added]);
+      } else {
+        const updated = await portfolioApi.update(editing, form);
+        setItems(items.map((i) => i._id === editing ? updated : i));
+      }
+      close();
+    } catch (e) {
+      console.error(e);
     }
-    close();
   };
-  const del = (id) => setItems(items.filter((i) => i._id !== id));
-  const toggleFeatured = (id) => setItems(items.map((i) => i._id === id ? { ...i, featured: !i.featured } : i));
+
+  const del = async (id) => {
+    if (!window.confirm("Delete this project?")) return;
+    try {
+      await portfolioApi.remove(id);
+      setItems(items.filter((i) => i._id !== id));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const toggleFeatured = async (id) => {
+    const it = items.find((x) => x._id === id);
+    if (!it) return;
+    try {
+      const updated = await portfolioApi.update(id, { featured: !it.featured });
+      setItems(items.map((x) => x._id === id ? updated : x));
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const typeMeta = (t) => PROJECT_TYPES.find(p => p.value === t) || { color: "#888", label: t };
 
@@ -98,45 +114,55 @@ export default function Portfolio() {
       </div>
 
       {/* Grid */}
-      <div className="px-6 py-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map((p) => (
-          <div key={p._id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-            <div className="h-44 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center relative">
-              <FiImage size={32} className="text-gray-300" />
-              {p.featured && <span className="absolute top-2 right-2 bg-yellow-400 text-yellow-900 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><FiStar size={10} /> Featured</span>}
-              {!p.isActive && <span className="absolute top-2 left-2 bg-gray-700 text-white text-[10px] px-2 py-0.5 rounded-full">Inactive</span>}
-            </div>
-            <div className="p-4">
-              <div className="flex items-start justify-between gap-2 mb-1">
-                <h3 className="text-sm font-bold text-gray-800 leading-tight flex-1">{p.title}</h3>
-                <span className="text-[10px] uppercase px-2 py-0.5 rounded-full font-semibold shrink-0" style={{ background: typeMeta(p.projectType).color + "20", color: typeMeta(p.projectType).color }}>
-                  {typeMeta(p.projectType).label}
-                </span>
+      {items.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 bg-white border border-gray-100 rounded-2xl mx-6 mt-6 text-gray-400 gap-3">
+          <FiGrid size={48} className="text-gray-300" style={{ strokeWidth: 1.5 }} />
+          <div className="text-sm font-semibold">Data not available</div>
+          <button onClick={openCreate} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white rounded-xl shadow-lg" style={{ background: "linear-gradient(135deg,#E8663D,#d45a30)" }}>
+            <FiPlus size={14} /> New Project
+          </button>
+        </div>
+      ) : (
+        <div className="px-6 py-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map((p) => (
+            <div key={p._id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+              <div className="h-44 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center relative">
+                <FiImage size={32} className="text-gray-300" />
+                {p.featured && <span className="absolute top-2 right-2 bg-yellow-400 text-yellow-900 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><FiStar size={10} /> Featured</span>}
+                {!p.isActive && <span className="absolute top-2 left-2 bg-gray-700 text-white text-[10px] px-2 py-0.5 rounded-full">Inactive</span>}
               </div>
-              <p className="text-xs text-gray-500 mb-2">{p.client} · {p.year}</p>
-              <p className="text-xs text-gray-600 line-clamp-2">{p.description}</p>
-              <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
-                <div className="flex gap-1">
-                  {p.technologies.slice(0, 3).map((t, i) => <span key={i} className="text-[10px] px-2 py-0.5 bg-gray-100 rounded text-gray-600">{t}</span>)}
-                  {p.technologies.length > 3 && <span className="text-[10px] text-gray-400">+{p.technologies.length - 3}</span>}
+              <div className="p-4">
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <h3 className="text-sm font-bold text-gray-800 leading-tight flex-1">{p.title}</h3>
+                  <span className="text-[10px] uppercase px-2 py-0.5 rounded-full font-semibold shrink-0" style={{ background: typeMeta(p.projectType).color + "20", color: typeMeta(p.projectType).color }}>
+                    {typeMeta(p.projectType).label}
+                  </span>
                 </div>
-                <div className="flex gap-1">
-                  <button onClick={() => toggleFeatured(p._id)} className={`p-1.5 rounded-lg ${p.featured ? "text-yellow-500 bg-yellow-50" : "text-gray-400 hover:bg-gray-100"}`}><FiStar size={13} /></button>
-                  {p.liveUrl && <a href={p.liveUrl} target="_blank" rel="noreferrer" className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100"><FiExternalLink size={13} /></a>}
-                  <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-[#E8663D]"><FiEdit3 size={13} /></button>
-                  <button onClick={() => del(p._id)} className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500"><FiTrash2 size={13} /></button>
+                <p className="text-xs text-gray-500 mb-2">{p.client} · {p.year}</p>
+                <p className="text-xs text-gray-600 line-clamp-2">{p.description}</p>
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
+                  <div className="flex gap-1">
+                    {(p.technologies || []).slice(0, 3).map((t, i) => <span key={i} className="text-[10px] px-2 py-0.5 bg-gray-100 rounded text-gray-600">{t}</span>)}
+                    {(p.technologies || []).length > 3 && <span className="text-[10px] text-gray-400">+{(p.technologies || []).length - 3}</span>}
+                  </div>
+                  <div className="flex gap-1">
+                    <button onClick={() => toggleFeatured(p._id)} className={`p-1.5 rounded-lg ${p.featured ? "text-yellow-500 bg-yellow-50" : "text-gray-400 hover:bg-gray-100"}`}><FiStar size={13} /></button>
+                    {p.liveUrl && <a href={p.liveUrl} target="_blank" rel="noreferrer" className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100"><FiExternalLink size={13} /></a>}
+                    <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-[#E8663D]"><FiEdit3 size={13} /></button>
+                    <button onClick={() => del(p._id)} className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500"><FiTrash2 size={13} /></button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
-        {filtered.length === 0 && (
-          <div className="col-span-full py-20 text-center text-gray-400">
-            <FiGrid size={48} className="mx-auto mb-3 opacity-40" />
-            <p className="text-sm">No projects match your filters.</p>
-          </div>
-        )}
-      </div>
+          ))}
+          {filtered.length === 0 && (
+            <div className="col-span-full py-20 text-center text-gray-400">
+              <FiGrid size={48} className="mx-auto mb-3 opacity-40" />
+              <p className="text-sm">No projects match your filters.</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Editor Modal */}
       {editing && (

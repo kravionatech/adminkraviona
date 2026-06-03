@@ -36,21 +36,6 @@ const timeAgo  = (d) => {
   return `${Math.floor(s/86400)}d ago`;
 };
 
-const SEED = [
-  { id:1,  name:"Arjun Mehta",    email:"arjun@startup.in",    status:"Subscribed",   source:"Website Form",  tag:"General",    joined:"2025-01-10", updated:"2025-05-30T08:00:00" },
-  { id:2,  name:"Priya Nair",     email:"priya@fintech.io",    status:"Subscribed",   source:"Blog Popup",    tag:"SEO Blog",   joined:"2025-02-14", updated:"2025-06-01T09:00:00" },
-  { id:3,  name:"Rohan Sharma",   email:"rohan@eatout.com",    status:"Unsubscribed", source:"Landing Page",  tag:"Offers",     joined:"2025-01-22", updated:"2025-05-01T10:00:00" },
-  { id:4,  name:"Sneha Kulkarni", email:"sneha@appideas.in",   status:"Subscribed",   source:"Manual",        tag:"Design Tips",joined:"2025-03-05", updated:"2025-05-28T11:00:00" },
-  { id:5,  name:"Vikram Joshi",   email:"vikram@consult.com",  status:"Bounced",      source:"Import",        tag:"Case Study", joined:"2024-12-01", updated:"2025-04-10T12:00:00" },
-  { id:6,  name:"Anjali Patel",   email:"anjali@photo.art",    status:"Subscribed",   source:"Blog Popup",    tag:"General",    joined:"2025-04-18", updated:"2025-05-31T07:00:00" },
-  { id:7,  name:"Deepak Verma",   email:"deepak@realty.in",    status:"Subscribed",   source:"Website Form",  tag:"Offers",     joined:"2025-02-28", updated:"2025-05-29T15:00:00" },
-  { id:8,  name:"Kavitha Reddy",  email:"kavitha@edu.org",     status:"Unsubscribed", source:"Landing Page",  tag:"SEO Blog",   joined:"2025-01-30", updated:"2025-05-10T08:00:00" },
-  { id:9,  name:"Manish Gupta",   email:"manish@saas.co",      status:"Subscribed",   source:"Manual",        tag:"Design Tips",joined:"2025-05-01", updated:"2025-06-01T06:00:00" },
-  { id:10, name:"Ritika Shah",    email:"ritika@fashion.in",   status:"Subscribed",   source:"Import",        tag:"Case Study", joined:"2025-05-20", updated:"2025-06-01T05:00:00" },
-  { id:11, name:"Suresh Rao",     email:"suresh@agency.com",   status:"Bounced",      source:"Import",        tag:"General",    joined:"2024-11-15", updated:"2025-03-01T09:00:00" },
-  { id:12, name:"Meena Das",      email:"meena@blog.in",       status:"Subscribed",   source:"Blog Popup",    tag:"SEO Blog",   joined:"2025-04-05", updated:"2025-05-27T14:00:00" },
-];
-
 const EMPTY_FORM = { name:"", email:"", status:"Subscribed", source:"Website Form", tag:"General", joined: new Date().toISOString().split("T")[0] };
 
 function Av({ name, size=34 }) {
@@ -103,7 +88,7 @@ export default function NewsletterSection() {
         updated: s.updatedAt || s.subscribedAt || s.createdAt,
       }));
       setSubs(list);
-    } catch (e) { setSubs(SEED); }
+    } catch (e) { setSubs([]); }
     finally { setLoading(false); }
   };
   useEffect(() => { fetchSubs(); }, []);
@@ -301,7 +286,12 @@ export default function NewsletterSection() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {subs.length === 0 ? (
+                <tr><td colSpan={8} style={{ textAlign:"center", padding:52, color:"#cbd5e1" }}>
+                  <RiMailSendLine size={40} style={{ display:"block", margin:"0 auto 8px" }}/>
+                  Data not available
+                </td></tr>
+              ) : filtered.length === 0 ? (
                 <tr><td colSpan={8} style={{ textAlign:"center", padding:52, color:"#cbd5e1" }}>
                   <RiMailSendLine size={40} style={{ display:"block", margin:"0 auto 8px" }}/>
                   No subscribers found

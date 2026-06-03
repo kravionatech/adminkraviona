@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { settingsApi } from "../../services/api";
 import {
   FiLink, FiSave, FiPlus, FiTrash2, FiCheckCircle, FiAlertCircle,
   FiInfo, FiChevronDown, FiChevronUp, FiToggleLeft, FiToggleRight,
@@ -7,14 +8,7 @@ import {
 
 // ─── Default Data ─────────────────────────────────────────────────────────────
 
-const DEFAULT_RULES = [
-  { id: 1, type: "redirect",  from: "/home",              to: "https://kraviona.com/",             label: "Home alias",          active: true,  scope: "exact"   },
-  { id: 2, type: "canonical", from: "/blog?page=1",       to: "https://kraviona.com/blog",         label: "Blog pagination",     active: true,  scope: "pattern" },
-  { id: 3, type: "canonical", from: "/services/?ref=*",   to: "https://kraviona.com/services",     label: "Services UTM strip",  active: true,  scope: "pattern" },
-  { id: 4, type: "canonical", from: "/case-studies/*",    to: "https://kraviona.com/case-studies", label: "Case study wildcard", active: false, scope: "pattern" },
-  { id: 5, type: "self",      from: "/portfolio",         to: "",                                  label: "Portfolio self-ref",  active: true,  scope: "exact"   },
-  { id: 6, type: "redirect",  from: "/old-pricing",       to: "https://kraviona.com/pricing",      label: "Pricing old URL",     active: true,  scope: "exact"   },
-];
+
 
 const TYPE_CONFIG = {
   canonical: { label: "Canonical",    bg: "bg-blue-100",   text: "text-blue-700"   },
@@ -255,7 +249,7 @@ function AddRuleForm({ onAdd }) {
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function CanonicalRules() {
-  const [rules, setRules]                 = useState(DEFAULT_RULES);
+  const [rules, setRules]                 = useState([]);
   const [saved, setSaved]                 = useState(false);
   const [search, setSearch]               = useState("");
   const [typeFilter, setTypeFilter]       = useState("All");
@@ -263,6 +257,14 @@ export default function CanonicalRules() {
   const [trailingSlash, setTrailingSlash] = useState(false);
   const [preferHttps, setPreferHttps]     = useState(true);
   const [preferWww, setPreferWww]         = useState(false);
+
+  useEffect(() => {
+    settingsApi.public().then((s) => {
+      if (s && Array.isArray(s.seo_canonical_rules)) {
+        setRules(s.seo_canonical_rules);
+      }
+    }).catch(() => null);
+  }, []);
 
   const updateRule = (updated) => setRules((p) => p.map((r) => (r.id === updated.id ? updated : r)));
   const deleteRule = (id)      => setRules((p) => p.filter((r) => r.id !== id));
@@ -275,7 +277,15 @@ export default function CanonicalRules() {
     return matchSearch && matchType;
   });
 
-  const handleSave = () => { setSaved(true); setTimeout(() => setSaved(false), 2500); };
+  const handleSave = async () => {
+    try {
+      await settingsApi.single("seo_canonical_rules", { value: rules });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (e) {
+      console.error(e);
+    }
+  };
   const activeCount = rules.filter((r) => r.active).length;
 
   return (
@@ -368,7 +378,13 @@ export default function CanonicalRules() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {rules.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="text-center text-gray-400 text-sm py-8">
+                    Data not available
+                  </td>
+                </tr>
+              ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="text-center text-gray-400 text-sm py-8">
                     No rules match your filter.

@@ -41,18 +41,7 @@ const timeAgo  = (d) => {
 };
 const fmtBudget = (v) => v >= 100000 ? `₹${(v/100000).toFixed(1)}L` : `₹${(v/1000).toFixed(0)}K`;
 
-const SEED = [
-  { id:1,  name:"Arjun Mehta",    email:"arjun@startup.in",      phone:"+91 98001 11111", city:"Mumbai",    stage:"Qualified",    source:"Website",    service:"Web Design",   budget:85000,  note:"Wants ecom site for clothing brand",  date:"2025-05-28", updated:"2025-06-01T08:10:00" },
-  { id:2,  name:"Priya Nair",     email:"priya@fintech.io",      phone:"+91 87002 22222", city:"Bangalore", stage:"Proposal",     source:"LinkedIn",   service:"SEO",          budget:240000, note:"3-month SEO retainer, fintech keywords", date:"2025-05-25", updated:"2025-05-31T14:00:00" },
-  { id:3,  name:"Rohan Sharma",   email:"rohan@eatout.com",      phone:"+91 76003 33333", city:"Delhi",     stage:"Contacted",    source:"Referral",   service:"Branding",     budget:30000,  note:"Restaurant branding — logo + menu",    date:"2025-05-30", updated:"2025-05-30T11:30:00" },
-  { id:4,  name:"Sneha Kulkarni", email:"sneha@appideas.in",     phone:"+91 65004 44444", city:"Pune",      stage:"Closed Won",   source:"Instagram",  service:"App Dev",      budget:350000, note:"Food delivery MVP, wireframes ready",  date:"2025-05-20", updated:"2025-05-29T16:45:00" },
-  { id:5,  name:"Vikram Joshi",   email:"vikram@consult.com",    phone:"+91 54005 55555", city:"Hyderabad", stage:"New",          source:"Google Ads", service:"Social Media", budget:15000,  note:"LinkedIn + Insta for consulting firm", date:"2025-06-01", updated:"2025-06-01T09:00:00" },
-  { id:6,  name:"Anjali Patel",   email:"anjali@photo.art",      phone:"+91 43006 66666", city:"Ahmedabad", stage:"Closed Lost",  source:"WhatsApp",   service:"Web Design",   budget:12000,  note:"Portfolio site — budget too low",      date:"2025-05-15", updated:"2025-05-22T10:00:00" },
-  { id:7,  name:"Deepak Verma",   email:"deepak@realestate.in",  phone:"+91 32007 77777", city:"Noida",     stage:"Qualified",    source:"Cold Call",  service:"Ads",          budget:50000,  note:"Meta ads for property listings",       date:"2025-05-27", updated:"2025-05-31T12:00:00" },
-  { id:8,  name:"Kavitha Reddy",  email:"kavitha@edu.org",       phone:"+91 21008 88888", city:"Chennai",   stage:"Proposal",     source:"Referral",   service:"Content",      budget:40000,  note:"Blog + YouTube scripts for ed-tech",   date:"2025-05-22", updated:"2025-05-30T15:00:00" },
-  { id:9,  name:"Manish Gupta",   email:"manish@saas.co",        phone:"+91 99009 99999", city:"Gurugram",  stage:"Contacted",    source:"LinkedIn",   service:"SEO",          budget:120000, note:"SaaS product — need 10 keywords page 1", date:"2025-05-29", updated:"2025-05-29T08:00:00" },
-  { id:10, name:"Ritika Shah",    email:"ritika@fashion.in",     phone:"+91 88010 10101", city:"Surat",     stage:"New",          source:"Instagram",  service:"Branding",     budget:25000,  note:"Fashion brand rebranding",             date:"2025-06-01", updated:"2025-06-01T07:30:00" },
-];
+
 
 const EMPTY_FORM = { name:"", email:"", phone:"", city:"", stage:"New", source:"Website", service:"Web Design", budget:"", note:"", date: new Date().toISOString().split("T")[0] };
 
@@ -139,7 +128,7 @@ export default function LeadsPage() {
       const list = Array.isArray(res) ? res : (res?.data || []);
       setLeads(list.map(normaliseLead));
     } catch (e) {
-      setLeads(SEED.map((l) => ({ ...l })));
+      setLeads([]);
     } finally { setLoading(false); }
   };
   useEffect(() => { fetchLeads(); }, []);
@@ -321,121 +310,131 @@ export default function LeadsPage() {
         <span style={{ fontSize:11, color:"#94a3b8", marginLeft:"auto", fontWeight:500 }}>{filtered.length} lead{filtered.length!==1?"s":""}</span>
       </div>
 
-      {/* ── TABLE VIEW ── */}
-      {view === "table" && (
-        <div style={{ background:"#fff", borderRadius:14, border:"1px solid #f1f5f9", flex:1, overflow:"hidden", display:"flex", flexDirection:"column" }}>
-          <div style={{ flex:1, overflowY:"auto" }}>
-            <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
-              <thead>
-                <tr style={{ background:"#f8fafc", position:"sticky", top:0, zIndex:1 }}>
-                  <th style={{ width:40, padding:"10px 14px", textAlign:"center" }}>
-                    <input type="checkbox" checked={allSel} onChange={toggleAll} style={{ cursor:"pointer" }} />
-                  </th>
-                  <TH col="name"    label="Lead" />
-                  <TH col="service" label="Service" />
-                  <TH col="stage"   label="Stage" />
-                  <TH col="source"  label="Source" />
-                  <TH col="budget"  label="Budget" />
-                  <TH col="city"    label="City" />
-                  <TH col="updated" label="Last Updated" />
-                  <th style={{ padding:"10px 12px", fontSize:11, fontWeight:700, color:"#94a3b8", textTransform:"uppercase", letterSpacing:0.5 }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr><td colSpan={9} style={{ textAlign:"center", padding:52, color:"#cbd5e1" }}>
-                    <RiUserStarLine size={40} style={{ display:"block", margin:"0 auto 8px" }} />
-                    No leads found
-                  </td></tr>
-                ) : filtered.map((l, i) => (
-                  <tr key={l.id}
-                    onClick={() => setDetailLead(l)}
-                    style={{ borderBottom:"1px solid #f8fafc", cursor:"pointer", background: selIds.includes(l.id) ? "#fff7ed" : i%2===0 ? "#fff" : "#fafafa", transition:"background 0.1s" }}
-                    onMouseEnter={e => { if (!selIds.includes(l.id)) e.currentTarget.style.background="#f0f9ff"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = selIds.includes(l.id) ? "#fff7ed" : i%2===0 ? "#fff" : "#fafafa"; }}
-                  >
-                    <td style={{ padding:"11px 14px", textAlign:"center" }} onClick={e => e.stopPropagation()}>
-                      <input type="checkbox" checked={selIds.includes(l.id)} onChange={e => toggleSel(l.id, e)} style={{ cursor:"pointer" }} />
-                    </td>
-                    <td style={{ padding:"11px 12px" }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                        <Av name={l.name} size={34} />
-                        <div>
-                          <p style={{ margin:0, fontWeight:600, color:"#1e293b", fontSize:13 }}>{l.name}</p>
-                          <p style={{ margin:0, fontSize:11, color:"#94a3b8" }}>{l.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{ padding:"11px 12px" }}>
-                      <span style={{ background:"#f1f5f9", color:"#475569", fontSize:11, fontWeight:600, borderRadius:6, padding:"3px 8px" }}>{l.service}</span>
-                    </td>
-                    <td style={{ padding:"11px 12px" }}><StagePill stage={l.stage} /></td>
-                    <td style={{ padding:"11px 12px" }}>
-                      <span style={{ fontSize:12, color:"#64748b" }}>{SOURCE_ICONS[l.source]} {l.source}</span>
-                    </td>
-                    <td style={{ padding:"11px 12px", fontWeight:700, color:"#1e293b" }}>{fmtBudget(l.budget)}</td>
-                    <td style={{ padding:"11px 12px", color:"#64748b", fontSize:12 }}>📍 {l.city}</td>
-                    <td style={{ padding:"11px 12px", color:"#94a3b8", fontSize:11, whiteSpace:"nowrap" }}>{timeAgo(l.updated)}</td>
-                    <td style={{ padding:"11px 12px" }} onClick={e => e.stopPropagation()}>
-                      <div style={{ display:"flex", gap:4 }}>
-                        <button onClick={e => openEdit(l,e)} style={{ background:"#eff6ff", border:"none", borderRadius:7, padding:"5px 8px", cursor:"pointer", color:"#2563eb", display:"flex", alignItems:"center" }}><RiEditLine size={13} /></button>
-                        <button onClick={e => { e.stopPropagation(); setDelConfirm(l); }} style={{ background:"#fef2f2", border:"none", borderRadius:7, padding:"5px 8px", cursor:"pointer", color:"#dc2626", display:"flex", alignItems:"center" }}><RiDeleteBinLine size={13} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {/* ── LEADS VIEWS ── */}
+      {leads.length === 0 ? (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "#cbd5e1", minHeight: 320, border: "1px dashed #e2e8f0", background: "#fff", borderRadius: 14, gap: 8 }}>
+          <RiUserStarLine size={40} style={{ color: "#cbd5e1" }} />
+          <span style={{ fontSize: 13, color: "#94a3b8", fontWeight: 600 }}>Data not available</span>
         </div>
-      )}
-
-      {/* ── KANBAN VIEW ── */}
-      {view === "kanban" && (
-        <div style={{ display:"flex", gap:12, flex:1, overflowX:"auto", paddingBottom:8 }}>
-          {kanbanGroups.map(({ stage, leads: kLeads }) => {
-            const cfg = STAGE_CFG[stage];
-            return (
-              <div key={stage} style={{ minWidth:240, maxWidth:260, flex:"0 0 240px", display:"flex", flexDirection:"column", background:"#f8fafc", borderRadius:14, border:"1px solid #f1f5f9", overflow:"hidden" }}>
-                {/* Column Header */}
-                <div style={{ padding:"12px 14px", borderBottom:"3px solid "+cfg.dot, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                  <span style={{ fontSize:12, fontWeight:700, color:cfg.color }}>{stage}</span>
-                  <span style={{ fontSize:11, fontWeight:700, background:cfg.bg, color:cfg.color, borderRadius:20, padding:"2px 8px" }}>{kLeads.length}</span>
-                </div>
-                {/* Cards */}
-                <div style={{ flex:1, overflowY:"auto", padding:"10px 10px", display:"flex", flexDirection:"column", gap:8 }}>
-                  {kLeads.length === 0 && (
-                    <div style={{ textAlign:"center", color:"#cbd5e1", padding:"24px 0", fontSize:12 }}>No leads</div>
-                  )}
-                  {kLeads.map(l => (
-                    <div key={l.id} onClick={() => setDetailLead(l)} style={{
-                      background:"#fff", borderRadius:10, border:"1px solid #f1f5f9",
-                      padding:"12px", cursor:"pointer", transition:"box-shadow 0.15s",
-                    }}
-                      onMouseEnter={e => e.currentTarget.style.boxShadow="0 4px 12px rgba(0,0,0,0.07)"}
-                      onMouseLeave={e => e.currentTarget.style.boxShadow="none"}
-                    >
-                      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
-                        <Av name={l.name} size={30} />
-                        <div style={{ minWidth:0 }}>
-                          <p style={{ margin:0, fontWeight:700, color:"#1e293b", fontSize:12, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{l.name}</p>
-                          <p style={{ margin:0, fontSize:10, color:"#94a3b8" }}>{l.city}</p>
-                        </div>
-                      </div>
-                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                        <span style={{ fontSize:10, background:"#f1f5f9", color:"#475569", borderRadius:5, padding:"2px 6px", fontWeight:600 }}>{l.service}</span>
-                        <span style={{ fontSize:12, fontWeight:700, color:"#f97316" }}>{fmtBudget(l.budget)}</span>
-                      </div>
-                      <p style={{ margin:"8px 0 0", fontSize:11, color:"#94a3b8", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                        {SOURCE_ICONS[l.source]} {l.source} · {timeAgo(l.updated)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+      ) : (
+        <>
+          {/* ── TABLE VIEW ── */}
+          {view === "table" && (
+            <div style={{ background:"#fff", borderRadius:14, border:"1px solid #f1f5f9", flex:1, overflow:"hidden", display:"flex", flexDirection:"column" }}>
+              <div style={{ flex:1, overflowY:"auto" }}>
+                <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
+                  <thead>
+                    <tr style={{ background:"#f8fafc", position:"sticky", top:0, zIndex:1 }}>
+                      <th style={{ width:40, padding:"10px 14px", textAlign:"center" }}>
+                        <input type="checkbox" checked={allSel} onChange={toggleAll} style={{ cursor:"pointer" }} />
+                      </th>
+                      <TH col="name"    label="Lead" />
+                      <TH col="service" label="Service" />
+                      <TH col="stage"   label="Stage" />
+                      <TH col="source"  label="Source" />
+                      <TH col="budget"  label="Budget" />
+                      <TH col="city"    label="City" />
+                      <TH col="updated" label="Last Updated" />
+                      <th style={{ padding:"10px 12px", fontSize:11, fontWeight:700, color:"#94a3b8", textTransform:"uppercase", letterSpacing:0.5 }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.length === 0 ? (
+                      <tr><td colSpan={9} style={{ textAlign:"center", padding:52, color:"#cbd5e1" }}>
+                        <RiUserStarLine size={40} style={{ display:"block", margin:"0 auto 8px" }} />
+                        No leads found
+                      </td></tr>
+                    ) : filtered.map((l, i) => (
+                      <tr key={l.id}
+                        onClick={() => setDetailLead(l)}
+                        style={{ borderBottom:"1px solid #f8fafc", cursor:"pointer", background: selIds.includes(l.id) ? "#fff7ed" : i%2===0 ? "#fff" : "#fafafa", transition:"background 0.1s" }}
+                        onMouseEnter={e => { if (!selIds.includes(l.id)) e.currentTarget.style.background="#f0f9ff"; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = selIds.includes(l.id) ? "#fff7ed" : i%2===0 ? "#fff" : "#fafafa"; }}
+                      >
+                        <td style={{ padding:"11px 14px", textAlign:"center" }} onClick={e => e.stopPropagation()}>
+                          <input type="checkbox" checked={selIds.includes(l.id)} onChange={e => toggleSel(l.id, e)} style={{ cursor:"pointer" }} />
+                        </td>
+                        <td style={{ padding:"11px 12px" }}>
+                          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                            <Av name={l.name} size={34} />
+                            <div>
+                              <p style={{ margin:0, fontWeight:600, color:"#1e293b", fontSize:13 }}>{l.name}</p>
+                              <p style={{ margin:0, fontSize:11, color:"#94a3b8" }}>{l.email}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ padding:"11px 12px" }}>
+                          <span style={{ background:"#f1f5f9", color:"#475569", fontSize:11, fontWeight:600, borderRadius:6, padding:"3px 8px" }}>{l.service}</span>
+                        </td>
+                        <td style={{ padding:"11px 12px" }}><StagePill stage={l.stage} /></td>
+                        <td style={{ padding:"11px 12px" }}>
+                          <span style={{ fontSize:12, color:"#64748b" }}>{SOURCE_ICONS[l.source]} {l.source}</span>
+                        </td>
+                        <td style={{ padding:"11px 12px", fontWeight:700, color:"#1e293b" }}>{fmtBudget(l.budget)}</td>
+                        <td style={{ padding:"11px 12px", color:"#64748b", fontSize:12 }}>📍 {l.city}</td>
+                        <td style={{ padding:"11px 12px", color:"#94a3b8", fontSize:11, whiteSpace:"nowrap" }}>{timeAgo(l.updated)}</td>
+                        <td style={{ padding:"11px 12px" }} onClick={e => e.stopPropagation()}>
+                          <div style={{ display:"flex", gap:4 }}>
+                            <button onClick={e => openEdit(l,e)} style={{ background:"#eff6ff", border:"none", borderRadius:7, padding:"5px 8px", cursor:"pointer", color:"#2563eb", display:"flex", alignItems:"center" }}><RiEditLine size={13} /></button>
+                            <button onClick={e => { e.stopPropagation(); setDelConfirm(l); }} style={{ background:"#fef2f2", border:"none", borderRadius:7, padding:"5px 8px", cursor:"pointer", color:"#dc2626", display:"flex", alignItems:"center" }}><RiDeleteBinLine size={13} /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            );
-          })}
-        </div>
+            </div>
+          )}
+
+          {/* ── KANBAN VIEW ── */}
+          {view === "kanban" && (
+            <div style={{ display:"flex", gap:12, flex:1, overflowX:"auto", paddingBottom:8 }}>
+              {kanbanGroups.map(({ stage, leads: kLeads }) => {
+                const cfg = STAGE_CFG[stage];
+                return (
+                  <div key={stage} style={{ minWidth:240, maxWidth:260, flex:"0 0 240px", display:"flex", flexDirection:"column", background:"#f8fafc", borderRadius:14, border:"1px solid #f1f5f9", overflow:"hidden" }}>
+                    {/* Column Header */}
+                    <div style={{ padding:"12px 14px", borderBottom:"3px solid "+cfg.dot, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                      <span style={{ fontSize:12, fontWeight:700, color:cfg.color }}>{stage}</span>
+                      <span style={{ fontSize:11, fontWeight:700, background:cfg.bg, color:cfg.color, borderRadius:20, padding:"2px 8px" }}>{kLeads.length}</span>
+                    </div>
+                    {/* Cards */}
+                    <div style={{ flex:1, overflowY:"auto", padding:"10px 10px", display:"flex", flexDirection:"column", gap:8 }}>
+                      {kLeads.length === 0 && (
+                        <div style={{ textAlign:"center", color:"cbd5e1", padding:"24px 0", fontSize:12 }}>No leads</div>
+                      )}
+                      {kLeads.map(l => (
+                        <div key={l.id} onClick={() => setDetailLead(l)} style={{
+                          background:"#fff", borderRadius:10, border:"1px solid #f1f5f9",
+                          padding:"12px", cursor:"pointer", transition:"box-shadow 0.15s",
+                        }}
+                          onMouseEnter={e => e.currentTarget.style.boxShadow="0 4px 12px rgba(0,0,0,0.07)"}
+                          onMouseLeave={e => e.currentTarget.style.boxShadow="none"}
+                        >
+                          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
+                            <Av name={l.name} size={30} />
+                            <div style={{ minWidth:0 }}>
+                              <p style={{ margin:0, fontWeight:700, color:"#1e293b", fontSize:12, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{l.name}</p>
+                              <p style={{ margin:0, fontSize:10, color:"#94a3b8" }}>{l.city}</p>
+                            </div>
+                          </div>
+                          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                            <span style={{ fontSize:10, background:"#f1f5f9", color:"#475569", borderRadius:5, padding:"2px 6px", fontWeight:600 }}>{l.service}</span>
+                            <span style={{ fontSize:12, fontWeight:700, color:"#f97316" }}>{fmtBudget(l.budget)}</span>
+                          </div>
+                          <p style={{ margin:"8px 0 0", fontSize:11, color:"#94a3b8", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                            {SOURCE_ICONS[l.source]} {l.source} · {timeAgo(l.updated)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
 
       {/* ── Detail Drawer ── */}

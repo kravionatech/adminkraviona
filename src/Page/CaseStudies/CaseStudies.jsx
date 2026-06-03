@@ -9,12 +9,6 @@ const STATUS = {
   archived:  { label: "Archived",  bg: "#FAEEDA", color: "#633806" },
 };
 
-const SEED = [
-  { _id: "cs1", title: "How FinScale scaled to 1M users in 90 days",     slug: "finscale-scale-1m",    client: "FinScale",   industry: "Fintech",       status: "draft",     readingTime: 12, publishedAt: "", before: "5k MAU", after: "1M MAU", improvement: "200×",   summary: "Treasury dashboard rebuild that took us from on-prem MySQL to multi-region MongoDB." },
-  { _id: "cs2", title: "BoltCart: 18s → 1.4s page load on Black Friday", slug: "boltcart-perf",        client: "BoltCart",   industry: "E-commerce",    status: "draft",     readingTime: 8,  publishedAt: "", before: "18.2s",  after: "1.4s",   improvement: "92%",    summary: "Edge caching, image pipeline, code splitting — the trifecta that saved Black Friday." },
-  { _id: "cs3", title: "Northwave's zero-downtime PHP → Node migration", slug: "northwave-migration", client: "Northwave",  industry: "Hospitality",   status: "draft",     readingTime: 15, publishedAt: "", before: "120 RPS", after: "8.5k RPS", improvement: "71×",   summary: "Dual-write strategy that took a hospitality booking platform off legacy PHP without a single second of downtime." },
-];
-
 const EMPTY = {
   title: "", slug: "", client: "", industry: "", status: "draft",
   readingTime: 5, publishedAt: "", before: "", after: "", improvement: "",
@@ -23,7 +17,7 @@ const EMPTY = {
 };
 
 export default function CaseStudiesCRUD() {
-  const [items, setItems] = useState(SEED);
+  const [items, setItems] = useState([]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [editing, setEditing] = useState(null);
@@ -31,13 +25,13 @@ export default function CaseStudiesCRUD() {
   useEffect(() => {
     caseStudiesApi.list({ limit: 200 }).then((d) => {
       const list = Array.isArray(d) ? d : (d?.data || []);
-      if (list.length) setItems(list);
-    }).catch(() => null);
+      setItems(list);
+    }).catch(() => setItems([]));
   }, []);
   const [form, setForm] = useState(EMPTY);
 
   const filtered = items.filter((i) => {
-    const ms = !search || i.title.toLowerCase().includes(search.toLowerCase());
+    const ms = !search || (i.title || "").toLowerCase().includes(search.toLowerCase());
     const mf = filter === "all" || i.status === filter;
     return ms && mf;
   });
@@ -46,12 +40,30 @@ export default function CaseStudiesCRUD() {
   const openEdit = (it) => { setForm({ ...it, technologies: it.technologies || [""], metrics: it.metrics || [{ label: "", before: "", after: "", improvement: "" }] }); setEditing(it._id); };
   const close = () => { setEditing(null); setForm(EMPTY); };
 
-  const save = () => {
-    if (editing === "new") setItems([...items, { ...form, _id: `cs${Date.now()}` }]);
-    else setItems(items.map((i) => i._id === editing ? { ...form } : i));
-    close();
+  const save = async () => {
+    try {
+      if (editing === "new") {
+        const added = await caseStudiesApi.create(form);
+        setItems([...items, added]);
+      } else {
+        const updated = await caseStudiesApi.update(editing, form);
+        setItems(items.map((i) => i._id === editing ? updated : i));
+      }
+      close();
+    } catch (e) {
+      console.error(e);
+    }
   };
-  const del = (id) => setItems(items.filter((i) => i._id !== id));
+
+  const del = async (id) => {
+    if (!window.confirm("Delete this case study?")) return;
+    try {
+      await caseStudiesApi.remove(id);
+      setItems(items.filter((i) => i._id !== id));
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#F7F8FA] -m-6 sm:-m-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -82,39 +94,49 @@ export default function CaseStudiesCRUD() {
         </div>
       </div>
 
-      <div className="px-6 py-6 space-y-3">
-        {filtered.map((c) => (
-          <div key={c._id} className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center gap-5 hover:shadow-md transition-shadow">
-            <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center shrink-0">
-              <FiFileText size={28} className="text-gray-300" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] uppercase px-2 py-0.5 rounded-full font-bold" style={{ background: STATUS[c.status].bg, color: STATUS[c.status].color }}>{STATUS[c.status].label}</span>
-                <span className="text-xs text-gray-500">{c.client} · {c.industry}</span>
+      {items.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 bg-white border border-gray-100 rounded-2xl mx-6 mt-6 text-gray-400 gap-3">
+          <FiBriefcase size={48} className="text-gray-300" style={{ strokeWidth: 1.5 }} />
+          <div className="text-sm font-semibold">Data not available</div>
+          <button onClick={openCreate} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white rounded-xl shadow-lg" style={{ background: "linear-gradient(135deg,#E8663D,#d45a30)" }}>
+            <FiPlus size={14} /> New Case Study
+          </button>
+        </div>
+      ) : (
+        <div className="px-6 py-6 space-y-3">
+          {filtered.map((c) => (
+            <div key={c._id} className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center gap-5 hover:shadow-md transition-shadow">
+              <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center shrink-0">
+                <FiFileText size={28} className="text-gray-300" />
               </div>
-              <h3 className="text-sm font-bold text-gray-800 mb-1 truncate">{c.title}</h3>
-              <p className="text-xs text-gray-600 line-clamp-2 mb-2">{c.summary}</p>
-              <div className="flex gap-4 text-[11px] text-gray-500">
-                <span><strong className="text-gray-800">Before:</strong> {c.before}</span>
-                <span><strong className="text-gray-800">After:</strong> {c.after}</span>
-                <span><strong className="text-emerald-600">↑ {c.improvement}</strong></span>
-                <span>{c.readingTime} min read</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] uppercase px-2 py-0.5 rounded-full font-bold" style={{ background: STATUS[c.status].bg, color: STATUS[c.status].color }}>{STATUS[c.status].label}</span>
+                  <span className="text-xs text-gray-500">{c.client} · {c.industry}</span>
+                </div>
+                <h3 className="text-sm font-bold text-gray-800 mb-1 truncate">{c.title}</h3>
+                <p className="text-xs text-gray-600 line-clamp-2 mb-2">{c.summary}</p>
+                <div className="flex gap-4 text-[11px] text-gray-500">
+                  <span><strong className="text-gray-800">Before:</strong> {c.before}</span>
+                  <span><strong className="text-gray-800">After:</strong> {c.after}</span>
+                  <span><strong className="text-emerald-600">↑ {c.improvement}</strong></span>
+                  <span>{c.readingTime} min read</span>
+                </div>
+              </div>
+              <div className="flex gap-1 shrink-0">
+                <button onClick={() => openEdit(c)} className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-[#E8663D]"><FiEdit3 size={14} /></button>
+                <button onClick={() => del(c._id)} className="p-2 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500"><FiTrash2 size={14} /></button>
               </div>
             </div>
-            <div className="flex gap-1 shrink-0">
-              <button onClick={() => openEdit(c)} className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-[#E8663D]"><FiEdit3 size={14} /></button>
-              <button onClick={() => del(c._id)} className="p-2 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500"><FiTrash2 size={14} /></button>
+          ))}
+          {filtered.length === 0 && (
+            <div className="py-20 text-center text-gray-400">
+              <FiBriefcase size={48} className="mx-auto mb-3 opacity-40" />
+              <p className="text-sm">No case studies — create the first one above.</p>
             </div>
-          </div>
-        ))}
-        {filtered.length === 0 && (
-          <div className="py-20 text-center text-gray-400">
-            <FiBriefcase size={48} className="mx-auto mb-3 opacity-40" />
-            <p className="text-sm">No case studies — create the first one above.</p>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {editing && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={close}>

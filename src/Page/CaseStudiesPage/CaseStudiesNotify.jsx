@@ -1,7 +1,8 @@
-// Case Studies → "Notify Me" form configuration
+import { useState, useEffect } from "react";
 import { FiBell } from "react-icons/fi";
 import { PageHeader, PageShell, PageBody, Card, Field, Input, Textarea, Toggle, InfoBanner } from "../../Components/UI/FormPrimitives";
 import { useSiteConfigForm } from "../../services/useSiteConfigForm";
+import { subscribersApi } from "../../services/api";
 
 const INITIAL = {
   formTitle: "Get notified the moment we launch",
@@ -13,15 +14,25 @@ const INITIAL = {
   saveToNewsletter: true,
 };
 
-const DUMMY_SIGNUPS = [
-  { email: "founder@finscale.io",  date: "2026-05-30" },
-  { email: "ceo@boltcart.com",     date: "2026-05-28" },
-  { email: "hello@northwave.app",  date: "2026-05-25" },
-  { email: "info@lumen.ai",        date: "2026-05-21" },
-];
-
 export default function CaseStudiesNotify() {
   const {  data, dirty, saving, saved, set, save  } = useSiteConfigForm(INITIAL, { section: "caseStudiesNotify" });
+  const [signups, setSignups] = useState([]);
+  const [loadingSignups, setLoadingSignups] = useState(true);
+
+  useEffect(() => {
+    subscribersApi.list({ limit: 4 }).then(res => {
+      const list = Array.isArray(res) ? res : (res?.data || []);
+      setSignups(list.map(s => ({
+        email: s.email,
+        date: s.createdAt ? new Date(s.createdAt).toISOString().slice(0, 10) : ""
+      })));
+    }).catch(() => {
+      setSignups([]);
+    }).finally(() => {
+      setLoadingSignups(false);
+    });
+  }, []);
+
   return (
     <PageShell>
       <PageHeader breadcrumb={["Admin", "Case Studies", "Notify Form"]} title="Case Studies: Notify-Me Form" icon={FiBell}
@@ -42,12 +53,18 @@ export default function CaseStudiesNotify() {
 
         <Card title="Recent Notify-Me Signups" subtitle="Most recent 4 entries">
           <div className="bg-gray-50 rounded-xl divide-y divide-gray-200">
-            {DUMMY_SIGNUPS.map((s, i) => (
-              <div key={i} className="flex items-center justify-between px-4 py-2.5 text-sm">
-                <span className="text-gray-800 font-mono">{s.email}</span>
-                <span className="text-xs text-gray-400">{s.date}</span>
-              </div>
-            ))}
+            {loadingSignups ? (
+              <div className="px-4 py-4 text-xs text-gray-400">Loading...</div>
+            ) : signups.length === 0 ? (
+              <div className="px-4 py-4 text-xs text-gray-400">Data not available</div>
+            ) : (
+              signups.map((s, i) => (
+                <div key={i} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                  <span className="text-gray-800 font-mono">{s.email}</span>
+                  <span className="text-xs text-gray-400">{s.date}</span>
+                </div>
+              ))
+            )}
           </div>
         </Card>
       </PageBody>

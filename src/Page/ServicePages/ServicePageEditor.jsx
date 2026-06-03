@@ -7,8 +7,22 @@ import { PageHeader, PageShell, PageBody, Card, Field, Input, Textarea, Toggle, 
 import { servicesApi } from "../../services/api";
 import { useFormState } from "../../Components/UI/FormPrimitives";
 
+const EMPTY_SERVICE = {
+  icon: "",
+  heroTitle: "",
+  heroDescription: "",
+  heroImage: "",
+  isActive: false,
+  whyChoose: [],
+  features: [],
+  technologies: [],
+  faqs: [],
+  relatedServices: [],
+  seo: { metaTitle: "", metaDescription: "", canonicalUrl: "", ogImage: "" }
+};
+
 export default function ServicePageEditor({ slug, initial, icon: Icon = FiCode, displayTitle }) {
-  const ctl = useFormState(initial, {
+  const ctl = useFormState(EMPTY_SERVICE, {
     onSave: async (data) => {
       // Try slug-based update first, fallback to update by slug
       const found = await servicesApi.publicOne(slug).catch(() => null);
@@ -24,8 +38,14 @@ export default function ServicePageEditor({ slug, initial, icon: Icon = FiCode, 
 
   useEffect(() => {
     servicesApi.publicOne(slug).then((s) => {
-      if (s && s._id) ctl.setAll({ ...initial, ...s });
-    }).catch(() => null);
+      if (s && s._id) {
+        ctl.setAll({ ...EMPTY_SERVICE, ...s });
+      } else {
+        ctl.setAll(EMPTY_SERVICE);
+      }
+    }).catch(() => {
+      ctl.setAll(EMPTY_SERVICE);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { settingsApi } from "../../services/api";
 import {
   FiCode, FiSave, FiPlus, FiTrash2, FiCopy, FiCheckCircle,
   FiChevronDown, FiChevronUp, FiAlertCircle, FiToggleLeft,
@@ -239,18 +240,15 @@ function SchemaBlock({ item, onUpdate, onDelete }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function SchemaJsonLD() {
-  const [schemas, setSchemas] = useState([
-    {
-      id: 1, type: "Organization", label: "Global Organization",
-      enabled: true, scope: "Global (all pages)",
-      rawJson: JSON.stringify(SCHEMA_TEMPLATES.Organization.schema, null, 2),
-    },
-    {
-      id: 2, type: "WebSite", label: "Website Search Action",
-      enabled: true, scope: "Homepage only",
-      rawJson: JSON.stringify(SCHEMA_TEMPLATES.WebSite.schema, null, 2),
-    },
-  ]);
+  const [schemas, setSchemas] = useState([]);
+
+  useEffect(() => {
+    settingsApi.public().then((s) => {
+      if (s && Array.isArray(s.seo_schema_jsonld)) {
+        setSchemas(s.seo_schema_jsonld);
+      }
+    }).catch(() => null);
+  }, []);
 
   const [showTemplates, setShowTemplates] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -274,9 +272,14 @@ export default function SchemaJsonLD() {
   const deleteSchema = (id) =>
     setSchemas((prev) => prev.filter((s) => s.id !== id));
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+  const handleSave = async () => {
+    try {
+      await settingsApi.single("seo_schema_jsonld", { value: schemas });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   return (
@@ -352,7 +355,7 @@ export default function SchemaJsonLD() {
       >
         {schemas.length === 0 ? (
           <div className="text-center text-gray-400 py-10 text-sm">
-            No schemas added yet. Click "Add Schema" to get started.
+            Data not available
           </div>
         ) : (
           schemas.map((s) => (

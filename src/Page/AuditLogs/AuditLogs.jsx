@@ -17,23 +17,8 @@ const ACTION_TYPES = {
   security:{ icon: FiShield,     color: "#DC2626", bg: "#FEF2F2", label: "Security" },
 };
 
-const LOGS = [
-  { id: 1,  ts: "2026-06-02 14:23:11", user: "Admin",   email: "kravionatech@gmail.com", action: "update", target: "SiteConfig",           targetId: "hero.headline",          summary: 'Hero headline changed to "MERN Stack Development & Technical SEO Solutions"', ip: "203.0.113.42",  device: "Chrome on Mac" },
-  { id: 2,  ts: "2026-06-02 13:55:02", user: "Amar K.", email: "amar@kraviona.com",     action: "create", target: "Service",              targetId: "ai-automation",          summary: "New service 'AI Automation' created",                                              ip: "203.0.113.42",  device: "Chrome on Mac" },
-  { id: 3,  ts: "2026-06-02 13:01:47", user: "Admin",   email: "kravionatech@gmail.com", action: "login",  target: "Session",             targetId: "sess_a1b2c3",            summary: "Admin signed in",                                                                  ip: "203.0.113.42",  device: "Chrome on Mac" },
-  { id: 4,  ts: "2026-06-01 21:14:33", user: "Priya V.",email: "priya@kraviona.com",   action: "delete", target: "BlogPost",             targetId: "post_xyz",               summary: "Deleted post 'Old Migration Notes'",                                                ip: "198.51.100.10", device: "Firefox on Windows" },
-  { id: 5,  ts: "2026-06-01 17:48:22", user: "Admin",   email: "kravionatech@gmail.com", action: "settings", target: "GlobalSettings",     targetId: "analytics.gtmId",        summary: "GTM container ID updated to GTM-5LX2JWGD",                                          ip: "203.0.113.42",  device: "Chrome on Mac" },
-  { id: 6,  ts: "2026-06-01 11:02:08", user: "Amar K.", email: "amar@kraviona.com",     action: "create", target: "TeamMember",          targetId: "tm_priya",               summary: "Added 'Priya Verma' to team",                                                       ip: "203.0.113.42",  device: "Chrome on Mac" },
-  { id: 7,  ts: "2026-05-31 22:19:51", user: "System",  email: "system@kraviona.com",   action: "security", target: "Auth",               targetId: "user_unknown",           summary: "5 failed login attempts from IP 192.0.2.1 — temporarily blocked",                  ip: "192.0.2.1",     device: "Unknown" },
-  { id: 8,  ts: "2026-05-31 19:45:30", user: "Admin",   email: "kravionatech@gmail.com", action: "update", target: "Testimonial",         targetId: "t6",                     summary: "Approved testimonial from Rohan Mehta",                                             ip: "203.0.113.42",  device: "Chrome on Mac" },
-  { id: 9,  ts: "2026-05-31 14:12:09", user: "Priya V.",email: "priya@kraviona.com",   action: "logout", target: "Session",             targetId: "sess_x9y8z7",            summary: "Signed out",                                                                       ip: "198.51.100.10", device: "Firefox on Windows" },
-  { id: 10, ts: "2026-05-30 16:30:22", user: "Admin",   email: "kravionatech@gmail.com", action: "create", target: "Portfolio",           targetId: "p6",                     summary: "Created project 'GreenLeaf — Subscription Engine'",                                 ip: "203.0.113.42",  device: "Chrome on Mac" },
-  { id: 11, ts: "2026-05-30 11:48:01", user: "Admin",   email: "kravionatech@gmail.com", action: "update", target: "Newsletter",          targetId: "campaign_002",           summary: "Sent newsletter campaign 'June 2026 Update' to 1,247 subscribers",                  ip: "203.0.113.42",  device: "Chrome on Mac" },
-  { id: 12, ts: "2026-05-29 23:08:14", user: "System",  email: "system@kraviona.com",   action: "security", target: "RateLimit",           targetId: "ip_198.51.100.42",       summary: "Rate limit triggered — 105 requests / 15min from /api/v1/public/contact",          ip: "198.51.100.42", device: "curl/8.0" },
-];
-
 export default function AuditLogs() {
-  const [logs, setLogs] = useState(LOGS);
+  const [logs, setLogs] = useState([]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
 
@@ -43,8 +28,10 @@ export default function AuditLogs() {
         ...l, id: l._id,
         ts: l.createdAt ? new Date(l.createdAt).toISOString().replace("T", " ").slice(0, 19) : "",
       }));
-      if (list.length) setLogs(list);
-    }).catch(() => null);
+      setLogs(list);
+    }).catch(() => {
+      setLogs([]);
+    });
   }, []);
 
   const filtered = logs.filter((l) => {
@@ -75,12 +62,12 @@ export default function AuditLogs() {
         </div>
         <div className="flex gap-1 flex-wrap">
           <button onClick={() => setFilter("all")} className={`text-xs px-3 py-2 rounded-lg ${filter === "all" ? "bg-[#235056] text-white" : "bg-gray-100 text-gray-700"}`}>
-            <FiFilter size={11} className="inline mr-1" /> All ({LOGS.length})
+            <FiFilter size={11} className="inline mr-1" /> All ({logs.length})
           </button>
           {Object.entries(ACTION_TYPES).map(([k, a]) => (
             <button key={k} onClick={() => setFilter(k)} className={`text-xs px-3 py-2 rounded-lg flex items-center gap-1 ${filter === k ? "text-white" : "bg-gray-100 text-gray-700"}`}
               style={filter === k ? { background: a.color } : {}}>
-              <a.icon size={11} /> {a.label} ({LOGS.filter(l => l.action === k).length})
+              <a.icon size={11} /> {a.label} ({logs.filter(l => l.action === k).length})
             </button>
           ))}
         </div>
@@ -114,12 +101,17 @@ export default function AuditLogs() {
                 </div>
               );
             })}
-            {filtered.length === 0 && (
+            {logs.length === 0 ? (
+              <div className="py-20 text-center text-gray-400">
+                <FiClipboard size={48} className="mx-auto mb-3 opacity-40" />
+                <p className="text-sm">Data not available</p>
+              </div>
+            ) : filtered.length === 0 ? (
               <div className="py-20 text-center text-gray-400">
                 <FiClipboard size={48} className="mx-auto mb-3 opacity-40" />
                 <p className="text-sm">No log entries match your filters.</p>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

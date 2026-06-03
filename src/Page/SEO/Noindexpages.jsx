@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { settingsApi } from "../../services/api";
 import {
   FiEyeOff, FiSave, FiPlus, FiTrash2, FiCheckCircle, FiInfo,
   FiChevronDown, FiChevronUp, FiToggleLeft, FiToggleRight,
@@ -8,18 +9,7 @@ import {
 
 // ─── Default Data ─────────────────────────────────────────────────────────────
 
-const DEFAULT_PAGES = [
-  { id: 1,  path: "/admin",            label: "Admin Panel",       category: "system",  reason: "Internal tool",          noindex: true,  nofollow: true  },
-  { id: 2,  path: "/login",            label: "Login Page",        category: "system",  reason: "Auth page",              noindex: true,  nofollow: false },
-  { id: 3,  path: "/register",         label: "Register Page",     category: "system",  reason: "Auth page",              noindex: true,  nofollow: false },
-  { id: 4,  path: "/thank-you",        label: "Thank You Page",    category: "funnel",  reason: "Post-conversion only",   noindex: true,  nofollow: true  },
-  { id: 5,  path: "/cart",             label: "Cart",              category: "funnel",  reason: "No SEO value",           noindex: true,  nofollow: true  },
-  { id: 6,  path: "/search",           label: "Search Results",    category: "dynamic", reason: "Duplicate content risk", noindex: true,  nofollow: false },
-  { id: 7,  path: "/tag/*",            label: "Tag Pages",         category: "blog",    reason: "Low-value taxonomy",     noindex: true,  nofollow: false },
-  { id: 8,  path: "/author/*",         label: "Author Archives",   category: "blog",    reason: "Thin content",           noindex: false, nofollow: false },
-  { id: 9,  path: "/privacy-policy",   label: "Privacy Policy",    category: "legal",   reason: "Legal, not SEO target",  noindex: true,  nofollow: false },
-  { id: 10, path: "/terms",            label: "Terms of Service",  category: "legal",   reason: "Legal, not SEO target",  noindex: true,  nofollow: false },
-];
+
 
 const CATEGORIES = ["system", "funnel", "dynamic", "blog", "legal", "custom"];
 
@@ -260,10 +250,18 @@ function AddPageForm({ onAdd }) {
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function NoIndexPages() {
-  const [pages, setPages]             = useState(DEFAULT_PAGES);
+  const [pages, setPages]             = useState([]);
   const [saved, setSaved]             = useState(false);
   const [search, setSearch]           = useState("");
   const [catFilter, setCatFilter]     = useState("All");
+
+  useEffect(() => {
+    settingsApi.public().then((s) => {
+      if (s && Array.isArray(s.seo_noindex_pages)) {
+        setPages(s.seo_noindex_pages);
+      }
+    }).catch(() => null);
+  }, []);
   const [globalNoindex, setGlobalNoindex]   = useState(false);
   const [noindexPagination, setNoindexPagination] = useState(true);
   const [noindexSearch, setNoindexSearch]   = useState(true);
@@ -282,7 +280,15 @@ export default function NoIndexPages() {
 
   const noindexCount = pages.filter((p) => p.noindex).length;
 
-  const handleSave = () => { setSaved(true); setTimeout(() => setSaved(false), 2500); };
+  const handleSave = async () => {
+    try {
+      await settingsApi.single("seo_noindex_pages", { value: pages });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen font-sans">
@@ -386,7 +392,13 @@ export default function NoIndexPages() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {pages.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center text-gray-400 text-sm py-8">
+                    Data not available
+                  </td>
+                </tr>
+              ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center text-gray-400 text-sm py-8">
                     No entries match your filter.

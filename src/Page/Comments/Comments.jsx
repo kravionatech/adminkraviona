@@ -8,43 +8,7 @@ import {
 } from "react-icons/fi";
 import { HiOutlineChatBubbleLeftRight } from "react-icons/hi2";
 
-const MOCK_DATA = [
-  {
-    postId: 1,
-    postTitle: "Ultimate MERN Stack Roadmap 2026",
-    postSlug: "mern-stack-roadmap-2026",
-    postDate: "May 28, 2026",
-    comments: [
-      { id: 1, author: "Rahul Sharma", email: "rahul@example.com", avatar: "RS", avatarColor: "#E8663D", body: "This is exactly what I needed! The roadmap is super clear and the order makes sense. Starting with Node.js first was a great suggestion.", date: "2h ago", status: "pending", replies: [] },
-      { id: 2, author: "Priya Singh", email: "priya@techie.io", avatar: "PS", avatarColor: "#3B82F6", body: "Great article but I think you should also mention TypeScript with MERN. It's becoming the standard in 2026.", date: "5h ago", status: "approved", replies: [
-        { id: 21, author: "Admin", email: "admin@kraviona.com", avatar: "KV", avatarColor: "#E8663D", body: "Great point Priya! We'll add a TypeScript section in the next update. Stay tuned!", date: "4h ago", isAdmin: true }
-      ]},
-      { id: 3, author: "spammer99", email: "buy@cheap-stuff.com", avatar: "SP", avatarColor: "#94A3B8", body: "Buy cheap hosting at superhosting.xyz click here now!!!", date: "1h ago", status: "spam", replies: [] },
-    ],
-  },
-  {
-    postId: 2,
-    postTitle: "10 Benefits of AI in Web Development",
-    postSlug: "10-benefits-of-ai-web-dev",
-    postDate: "May 20, 2026",
-    comments: [
-      { id: 4, author: "Amit Patel", email: "amit@devworks.in", avatar: "AP", avatarColor: "#10B981", body: "Point #7 about AI-assisted code review is underrated. We implemented it at our startup and reduced bugs by 40%.", date: "1d ago", status: "approved", replies: [] },
-      { id: 5, author: "Sara Khan", email: "sara.k@gmail.com", avatar: "SK", avatarColor: "#8B5CF6", body: "I disagree with point #3. AI still struggles with complex business logic. It's not as powerful as you're suggesting.", date: "2d ago", status: "pending", replies: [] },
-      { id: 6, author: "Vikram Nair", email: "v.nair@outlook.com", avatar: "VN", avatarColor: "#F59E0B", body: "Can you write a follow-up article on how to integrate GitHub Copilot into a MERN project? Would be super helpful!", date: "2d ago", status: "approved", replies: [
-        { id: 61, author: "Admin", email: "admin@kraviona.com", avatar: "KV", avatarColor: "#E8663D", body: "Great idea Vikram! It's in our content calendar for June. Subscribe to the newsletter to get notified.", date: "2d ago", isAdmin: true }
-      ]},
-    ],
-  },
-  {
-    postId: 3,
-    postTitle: "Technical SEO Checklist for Developers",
-    postSlug: "technical-seo-checklist",
-    postDate: "May 10, 2026",
-    comments: [
-      { id: 7, author: "Neha Gupta", email: "neha.g@seolab.com", avatar: "NG", avatarColor: "#06B6D4", body: "This checklist is gold. Bookmarked it and shared it with my entire dev team. The Core Web Vitals section is especially actionable.", date: "3d ago", status: "approved", replies: [] },
-    ],
-  },
-];
+// Mock comments removed
 
 const STATUS_CONFIG = {
   pending:  { label: "Pending",  bg: "bg-amber-50",   text: "text-amber-600",  dot: "bg-amber-400",  icon: FiClock },
@@ -255,7 +219,7 @@ function PostGroup({ group, filterStatus, onApprove, onReject, onDelete, onReply
 }
 
 export default function CommentsPage() {
-  const [data, setData] = useState(MOCK_DATA);
+  const [data, setData] = useState([]);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
@@ -279,8 +243,10 @@ export default function CommentsPage() {
           });
         });
         setData(Object.values(groups));
+      } else {
+        setData([]);
       }
-    }).catch(() => null);
+    }).catch(() => setData([]));
   }, []);
 
   const allComments = data.flatMap((g) => g.comments);
@@ -423,7 +389,12 @@ export default function CommentsPage() {
         )}
 
         {/* Post Groups */}
-        {filteredData.length === 0 ? (
+        {data.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-20 text-center">
+            <HiOutlineChatBubbleLeftRight size={40} className="mx-auto text-gray-200 mb-3" />
+            <p className="text-gray-400 text-sm font-medium">Data not available</p>
+          </div>
+        ) : filteredData.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-20 text-center">
             <HiOutlineChatBubbleLeftRight size={40} className="mx-auto text-gray-200 mb-3" />
             <p className="text-gray-400 text-sm">No comments found</p>

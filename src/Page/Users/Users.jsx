@@ -38,16 +38,6 @@ function timeAgo(d) {
   return `${Math.floor(s/86400)}d ago`;
 }
 
-const SEED_USERS = [
-  { id: 1, name: "Ravi Kumar",    email: "ravi@kraviona.com",    phone: "+91 98765 43210", role: "Admin",   status: "Active",    joined: "2024-01-15", lastActive: "2025-06-01T08:30:00", avatar: null },
-  { id: 2, name: "Sneha Sharma",  email: "sneha@kraviona.com",   phone: "+91 87654 32109", role: "Editor",  status: "Active",    joined: "2024-03-10", lastActive: "2025-05-31T14:20:00", avatar: null },
-  { id: 3, name: "Amit Verma",    email: "amit@kraviona.com",    phone: "+91 76543 21098", role: "Manager", status: "Active",    joined: "2024-05-22", lastActive: "2025-05-30T11:00:00", avatar: null },
-  { id: 4, name: "Pooja Mehta",   email: "pooja@kraviona.com",   phone: "+91 65432 10987", role: "Editor",  status: "Inactive",  joined: "2024-06-01", lastActive: "2025-04-12T09:45:00", avatar: null },
-  { id: 5, name: "Karan Singh",   email: "karan@kraviona.com",   phone: "+91 54321 09876", role: "Viewer",  status: "Active",    joined: "2024-08-14", lastActive: "2025-05-29T16:00:00", avatar: null },
-  { id: 6, name: "Divya Patel",   email: "divya@kraviona.com",   phone: "+91 43210 98765", role: "Editor",  status: "Suspended", joined: "2024-09-05", lastActive: "2025-03-01T10:00:00", avatar: null },
-  { id: 7, name: "Rohit Joshi",   email: "rohit@kraviona.com",   phone: "+91 32109 87654", role: "Viewer",  status: "Active",    joined: "2024-11-20", lastActive: "2025-05-28T08:00:00", avatar: null },
-  { id: 8, name: "Neha Gupta",    email: "neha@kraviona.com",    phone: "+91 21098 76543", role: "Manager", status: "Active",    joined: "2025-01-08", lastActive: "2025-06-01T07:15:00", avatar: null },
-];
 
 function Avatar({ name, size = 36 }) {
   return (
@@ -116,7 +106,7 @@ export default function UsersPage() {
       }));
       setUsers(list);
     } catch (e) {
-      setUsers(SEED_USERS);
+      setUsers([]);
     } finally { setLoading(false); }
   };
   useEffect(() => { fetchUsers(); }, []);
@@ -209,7 +199,7 @@ export default function UsersPage() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
         {stats.map(s => (
           <div key={s.label} style={{ background: "#fff", borderRadius: 12, border: "1px solid #f1f5f9", padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 10, background: s.bg, color: s.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 10, background: s.bg, color: s.color, display: "flex", alignItems: "center", justifycontent: "center", fontSize: 20, fontWeight: 800 }}>
               {s.value}
             </div>
             <span style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>{s.label}</span>
@@ -280,7 +270,12 @@ export default function UsersPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {users.length === 0 ? (
+                <tr><td colSpan={9} style={{ textAlign: "center", padding: 48, color: "#cbd5e1" }}>
+                  <RiUserLine size={36} style={{ display: "block", margin: "0 auto 8px" }} />
+                  Data not available
+                </td></tr>
+              ) : filtered.length === 0 ? (
                 <tr><td colSpan={9} style={{ textAlign: "center", padding: 48, color: "#cbd5e1" }}>
                   <RiUserLine size={36} style={{ display: "block", margin: "0 auto 8px" }} />
                   No users found

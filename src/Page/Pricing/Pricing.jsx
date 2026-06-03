@@ -3,39 +3,6 @@ import { useState, useEffect } from "react";
 import { FiDollarSign, FiPlus, FiEdit3, FiTrash2, FiX, FiCheck, FiStar, FiToggleLeft, FiToggleRight } from "react-icons/fi";
 import { pricingApi, siteConfigApi } from "../../services/api";
 
-const SEED = [
-  { _id: "pl1", name: "Starter",      tagline: "Perfect for early-stage MVPs",       priceMonthly: 4999,  priceAnnual: 49990,  isPopular: false, isHighlighted: false, isActive: true, ctaText: "Start Building", ctaLink: "/contact?plan=starter",
-    features: [
-      { text: "1 senior MERN engineer",          included: true },
-      { text: "20 hours / month",                included: true },
-      { text: "Slack support during IST hours",  included: true },
-      { text: "Monthly architecture review",     included: true },
-      { text: "Dedicated PM",                    included: false },
-      { text: "On-call SLA",                     included: false },
-    ],
-  },
-  { _id: "pl2", name: "Scale",        tagline: "For growing SaaS products",          priceMonthly: 12999, priceAnnual: 129990, isPopular: true,  isHighlighted: true,  isActive: true, ctaText: "Talk to Sales",  ctaLink: "/contact?plan=scale",
-    features: [
-      { text: "2 senior MERN engineers",         included: true },
-      { text: "80 hours / month",                included: true },
-      { text: "Slack support 24/5",              included: true },
-      { text: "Weekly architecture review",      included: true },
-      { text: "Dedicated PM",                    included: true },
-      { text: "On-call SLA",                     included: false },
-    ],
-  },
-  { _id: "pl3", name: "Enterprise",   tagline: "Production-critical workloads",      priceMonthly: 0,     priceAnnual: 0,      isPopular: false, isHighlighted: false, isActive: true, ctaText: "Get a Quote",    ctaLink: "/contact?plan=enterprise",
-    features: [
-      { text: "Custom team size",                included: true },
-      { text: "Unlimited hours",                 included: true },
-      { text: "24/7 dedicated Slack",            included: true },
-      { text: "Daily standups",                  included: true },
-      { text: "Dedicated PM + TPM",              included: true },
-      { text: "On-call SLA + DR drills",         included: true },
-    ],
-  },
-];
-
 const EMPTY = {
   name: "", tagline: "", priceMonthly: 0, priceAnnual: 0,
   isPopular: false, isHighlighted: false, isActive: true,
@@ -44,7 +11,7 @@ const EMPTY = {
 };
 
 export default function PricingCRUD() {
-  const [items, setItems] = useState(SEED);
+  const [items, setItems] = useState([]);
   const [isComingSoon, setIsComingSoon] = useState(true);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY);
@@ -52,8 +19,8 @@ export default function PricingCRUD() {
   useEffect(() => {
     pricingApi.list({ limit: 200 }).then((d) => {
       const list = Array.isArray(d) ? d : (d?.data || []);
-      if (list.length) setItems(list);
-    }).catch(() => null);
+      setItems(list);
+    }).catch(() => setItems([]));
     siteConfigApi.get().then((cfg) => {
       if (cfg?.pricing?.isComingSoon !== undefined) setIsComingSoon(cfg.pricing.isComingSoon);
     }).catch(() => null);
@@ -63,12 +30,40 @@ export default function PricingCRUD() {
   const openEdit = (it) => { setForm({ ...it }); setEditing(it._id); };
   const close = () => { setEditing(null); setForm(EMPTY); };
 
-  const save = () => {
-    if (editing === "new") setItems([...items, { ...form, _id: `pl${Date.now()}` }]);
-    else setItems(items.map((i) => i._id === editing ? { ...form } : i));
-    close();
+  const save = async () => {
+    try {
+      if (editing === "new") {
+        const added = await pricingApi.create(form);
+        setItems([...items, added]);
+      } else {
+        const updated = await pricingApi.update(editing, form);
+        setItems(items.map((i) => i._id === editing ? updated : i));
+      }
+      close();
+    } catch (e) {
+      console.error(e);
+    }
   };
-  const del = (id) => setItems(items.filter((i) => i._id !== id));
+
+  const del = async (id) => {
+    if (!window.confirm("Delete this plan?")) return;
+    try {
+      await pricingApi.remove(id);
+      setItems(items.filter((i) => i._id !== id));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const toggleComingSoon = async () => {
+    const val = !isComingSoon;
+    setIsComingSoon(val);
+    try {
+      await siteConfigApi.update({ pricing: { isComingSoon: val } });
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#F7F8FA] -m-6 sm:-m-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -93,49 +88,59 @@ export default function PricingCRUD() {
             <p className="text-xs text-[#c4501e]/80">{isComingSoon ? "Plans below are HIDDEN from the public site." : "Plans below are visible on /pricing."}</p>
           </div>
         </div>
-        <button onClick={() => setIsComingSoon(!isComingSoon)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-[#E8663D]/30">
+        <button onClick={toggleComingSoon} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-[#E8663D]/30">
           {isComingSoon ? <FiToggleLeft size={20} className="text-gray-400" /> : <FiToggleRight size={20} className="text-[#E8663D]" />}
           <span className="text-sm font-bold text-[#c4501e]">{isComingSoon ? "Coming Soon" : "Live"}</span>
         </button>
       </div>
 
-      <div className="px-6 py-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        {items.map((p) => (
-          <div key={p._id} className={`bg-white rounded-2xl border-2 p-6 relative ${p.isHighlighted ? "border-[#E8663D] shadow-lg" : "border-gray-100 shadow-sm"}`}>
-            {p.isPopular && <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#E8663D] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Most Popular</span>}
-            <div className="text-lg font-bold text-gray-800">{p.name}</div>
-            <div className="text-xs text-gray-500 mb-3">{p.tagline}</div>
-            <div className="mb-4">
-              {p.priceMonthly > 0 ? (
-                <div>
-                  <span className="text-3xl font-extrabold text-gray-800">₹{p.priceMonthly.toLocaleString()}</span>
-                  <span className="text-xs text-gray-400">/ month</span>
-                </div>
-              ) : (
-                <div className="text-3xl font-extrabold text-gray-800">Custom</div>
-              )}
-              {p.priceAnnual > 0 && <div className="text-[11px] text-gray-400">or ₹{p.priceAnnual.toLocaleString()} / year</div>}
+      {items.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 bg-white border border-gray-100 rounded-2xl mx-6 mt-6 text-gray-400 gap-3">
+          <FiDollarSign size={48} className="text-gray-300" style={{ strokeWidth: 1.5 }} />
+          <div className="text-sm font-semibold">Data not available</div>
+          <button onClick={openCreate} className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white rounded-xl shadow-lg" style={{ background: "linear-gradient(135deg,#E8663D,#d45a30)" }}>
+            <FiPlus size={14} /> New Plan
+          </button>
+        </div>
+      ) : (
+        <div className="px-6 py-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          {items.map((p) => (
+            <div key={p._id} className={`bg-white rounded-2xl border-2 p-6 relative ${p.isHighlighted ? "border-[#E8663D] shadow-lg" : "border-gray-100 shadow-sm"}`}>
+              {p.isPopular && <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#E8663D] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Most Popular</span>}
+              <div className="text-lg font-bold text-gray-800">{p.name}</div>
+              <div className="text-xs text-gray-500 mb-3">{p.tagline}</div>
+              <div className="mb-4">
+                {p.priceMonthly > 0 ? (
+                  <div>
+                    <span className="text-3xl font-extrabold text-gray-800">₹{p.priceMonthly.toLocaleString()}</span>
+                    <span className="text-xs text-gray-400">/ month</span>
+                  </div>
+                ) : (
+                  <div className="text-3xl font-extrabold text-gray-800">Custom</div>
+                )}
+                {p.priceAnnual > 0 && <div className="text-[11px] text-gray-400">or ₹{p.priceAnnual.toLocaleString()} / year</div>}
+              </div>
+              <ul className="space-y-2 mb-5 text-xs">
+                {p.features.map((f, i) => (
+                  <li key={i} className={`flex items-start gap-2 ${f.included ? "text-gray-700" : "text-gray-300 line-through"}`}>
+                    {f.included ? <FiCheck size={13} className="text-emerald-500 mt-0.5 shrink-0" /> : <FiX size={13} className="text-gray-300 mt-0.5 shrink-0" />}
+                    {f.text}
+                  </li>
+                ))}
+              </ul>
+              <div className="flex items-center gap-2 mb-3">
+                {p.isPopular && <span className="text-[10px] uppercase px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-bold flex items-center gap-1"><FiStar size={9} /> Popular</span>}
+                {p.isHighlighted && <span className="text-[10px] uppercase px-2 py-0.5 rounded-full bg-[#E8663D]/10 text-[#E8663D] font-bold">Highlighted</span>}
+                {!p.isActive && <span className="text-[10px] uppercase px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-bold">Inactive</span>}
+              </div>
+              <div className="flex gap-2 pt-3 border-t border-gray-100">
+                <button onClick={() => openEdit(p)} className="flex-1 flex items-center justify-center gap-1 text-xs py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold"><FiEdit3 size={11} /> Edit</button>
+                <button onClick={() => del(p._id)} className="px-3 py-2 rounded-lg text-red-500 hover:bg-red-50"><FiTrash2 size={12} /></button>
+              </div>
             </div>
-            <ul className="space-y-2 mb-5 text-xs">
-              {p.features.map((f, i) => (
-                <li key={i} className={`flex items-start gap-2 ${f.included ? "text-gray-700" : "text-gray-300 line-through"}`}>
-                  {f.included ? <FiCheck size={13} className="text-emerald-500 mt-0.5 shrink-0" /> : <FiX size={13} className="text-gray-300 mt-0.5 shrink-0" />}
-                  {f.text}
-                </li>
-              ))}
-            </ul>
-            <div className="flex items-center gap-2 mb-3">
-              {p.isPopular && <span className="text-[10px] uppercase px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-bold flex items-center gap-1"><FiStar size={9} /> Popular</span>}
-              {p.isHighlighted && <span className="text-[10px] uppercase px-2 py-0.5 rounded-full bg-[#E8663D]/10 text-[#E8663D] font-bold">Highlighted</span>}
-              {!p.isActive && <span className="text-[10px] uppercase px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-bold">Inactive</span>}
-            </div>
-            <div className="flex gap-2 pt-3 border-t border-gray-100">
-              <button onClick={() => openEdit(p)} className="flex-1 flex items-center justify-center gap-1 text-xs py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold"><FiEdit3 size={11} /> Edit</button>
-              <button onClick={() => del(p._id)} className="px-3 py-2 rounded-lg text-red-500 hover:bg-red-50"><FiTrash2 size={12} /></button>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Editor */}
       {editing && (

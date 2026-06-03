@@ -8,48 +8,7 @@ import {
 
 // ─── Data ───────────────────────────────────────────────────────────────────
 
-const MEMBERS = [
-  {
-    id: 1, name: "Admin Singh", initials: "AS", role: "CEO & Founder",
-    email: "admin@kraviona.com", badge: "Admin", status: "online",
-    color: "orange", group: "admin",
-  },
-  {
-    id: 2, name: "Priya Kapoor", initials: "PK", role: "Operations Manager",
-    email: "priya@kraviona.com", badge: "Manager", status: "online",
-    color: "teal", group: "admin",
-  },
-  {
-    id: 3, name: "Rahul Verma", initials: "RV", role: "Tech Lead",
-    email: "rahul@kraviona.com", badge: "Admin", status: "away",
-    color: "blue", group: "admin",
-  },
-  {
-    id: 4, name: "Sara Mehra", initials: "SM", role: "Content Writer",
-    email: "sara@kraviona.com", badge: "Editor", status: "online",
-    color: "pink", group: "member",
-  },
-  {
-    id: 5, name: "Arjun Tiwari", initials: "AT", role: "SEO Specialist",
-    email: "arjun@kraviona.com", badge: "Editor", status: "offline",
-    color: "purple", group: "member",
-  },
-  {
-    id: 6, name: "Neha Kumar", initials: "NK", role: "Sales Associate",
-    email: "neha@kraviona.com", badge: "Viewer", status: "online",
-    color: "green", group: "member",
-  },
-  {
-    id: 7, name: "Dev Malhotra", initials: "DM", role: "Designer",
-    email: "dev@kraviona.com", badge: "Editor", status: "away",
-    color: "orange", group: "member",
-  },
-  {
-    id: 8, name: "Riya Joshi", initials: "RJ", role: "Marketing Intern",
-    email: "riya@kraviona.com", badge: "Viewer", status: "online",
-    color: "teal", group: "member",
-  },
-];
+const MEMBERS = [];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -198,14 +157,14 @@ export default function TeamsPage() {
   useEffect(() => {
     teamApi.list({ limit: 100 })
       .then((data) => setTeamList(Array.isArray(data) ? data : (data?.data || [])))
-      .catch(() => setTeamList(MEMBERS))
+      .catch(() => setTeamList([]))
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = (teamList.length ? teamList : MEMBERS).filter((m) => {
+  const filtered = teamList.filter((m) => {
     const matchSearch =
-      m.name.toLowerCase().includes(search.toLowerCase()) ||
-      m.role.toLowerCase().includes(search.toLowerCase());
+      (m.name || "").toLowerCase().includes(search.toLowerCase()) ||
+      (m.role || "").toLowerCase().includes(search.toLowerCase());
     const matchRole = roleFilter === "All Roles" || m.badge === roleFilter;
     const matchStatus = statusFilter === "All Status" || m.status === statusFilter.toLowerCase();
     return matchSearch && matchRole && matchStatus;
@@ -239,10 +198,10 @@ export default function TeamsPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <StatCard icon={<FiUsers size={14} />} label="Total Members" value={MEMBERS.length} sub="+2 this month" />
-        <StatCard icon={<FiShield size={14} />} label="Admins" value={MEMBERS.filter(m => m.badge === "Admin").length} />
-        <StatCard icon={<FiActivity size={14} />} label="Active Now" value={MEMBERS.filter(m => m.status === "online").length} />
-        <StatCard icon={<FiMail size={14} />} label="Pending Invites" value={2} />
+        <StatCard icon={<FiUsers size={14} />} label="Total Members" value={teamList.length} sub={`+0 this month`} />
+        <StatCard icon={<FiShield size={14} />} label="Admins" value={teamList.filter(m => m.badge === "Admin").length} />
+        <StatCard icon={<FiActivity size={14} />} label="Active Now" value={teamList.filter(m => m.status === "online").length} />
+        <StatCard icon={<FiMail size={14} />} label="Pending Invites" value={0} />
       </div>
 
       {/* Filters */}
@@ -302,28 +261,41 @@ export default function TeamsPage() {
         </div>
       </div>
 
-      {/* Admins section */}
-      {admins.length > 0 && (
-        <div className="mb-8">
-          <SectionLabel>Admins & Managers</SectionLabel>
-          <div className={gridCls}>
-            {admins.map((m) => (
-              <MemberCard key={m.id} member={m} isAdmin={true} />
-            ))}
-          </div>
+      {teamList.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 border border-dashed border-gray-200 rounded-2xl bg-gray-50 text-gray-400 gap-3">
+          <FiUsers size={48} className="text-gray-300" />
+          <div className="text-sm font-semibold">Data not available</div>
+          <button className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-[#E8622A] rounded-lg hover:bg-[#d0561f] transition-colors">
+            <FiPlus size={14} /> Invite Member
+          </button>
         </div>
-      )}
+      ) : (
+        <>
+          {/* Admins section */}
+          {admins.length > 0 && (
+            <div className="mb-8">
+              <SectionLabel>Admins & Managers</SectionLabel>
+              <div className={gridCls}>
+                {admins.map((m) => (
+                  <MemberCard key={m.id || m._id} member={m} isAdmin={true} />
+                ))}
+              </div>
+            </div>
+          )}
 
-      {/* Members section */}
-      <div className="mb-8">
-        <SectionLabel>Editors & Viewers</SectionLabel>
-        <div className={gridCls}>
-          {members.map((m) => (
-            <MemberCard key={m.id} member={m} isAdmin={false} />
-          ))}
-          <InviteCard />
-        </div>
-      </div>
+          {/* Members section */}
+          <div className="mb-8">
+            <SectionLabel>Editors & Viewers</SectionLabel>
+            <div className={gridCls}>
+              {members.map((m) => (
+                <MemberCard key={m.id || m._id} member={m} isAdmin={false} />
+              ))}
+              <InviteCard />
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
+

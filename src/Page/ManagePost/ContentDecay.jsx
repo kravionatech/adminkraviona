@@ -31,18 +31,7 @@ function barWidth(days) {
   return Math.min(100, Math.round((days / 180) * 100));
 }
 
-// ─── MOCK DATA (fallback when API offline) ────────────────────────
-const MOCK_POSTS = [
-  { _id:'1', title:'Why Choosing a Top MERN Stack Development Company in India Changes the Game', category:{ name:'Next gen web' }, lastReviewedAt:'2026-05-31', views:3,   slug:'why-choosing-mern' },
-  { _id:'2', title:'What is MERN Stack? The Complete 2026 Guide for Developer',                  category:{ name:'Next gen web' }, lastReviewedAt:'2026-05-20', views:68,  slug:'what-is-mern-stack' },
-  { _id:'3', title:'Website Development Company in Delhi',                                       category:{ name:'Next gen web' }, lastReviewedAt:'2026-05-08', views:111, slug:'website-dev-delhi' },
-  { _id:'4', title:'AI-Driven SEO: How Machine Learning is Redefining Organic Search in 2026',  category:{ name:'AI & automation' }, lastReviewedAt:'2026-04-15', views:131, slug:'ai-driven-seo' },
-  { _id:'5', title:'How AI is Revolutionizing Full-Stack Web Development in 2026',               category:{ name:'AI & automation' }, lastReviewedAt:'2026-04-10', views:110, slug:'ai-full-stack' },
-  { _id:'6', title:'The Rise of Autonomous AI Agents: Transforming Work in 2026',               category:{ name:'AI & automation' }, lastReviewedAt:'2026-04-01', views:121, slug:'ai-agents-2026' },
-  { _id:'7', title:'The Ultimate MERN Stack Developer Roadmap 2026',                            category:{ name:'Next gen web' }, lastReviewedAt:'2026-03-20', views:267, slug:'mern-roadmap' },
-  { _id:'8', title:'10 Game-Changing Benefits of Web 3.0: The Future of Ownership',             category:{ name:'Web 3' },        lastReviewedAt:'2026-02-10', views:138, slug:'web3-benefits' },
-  { _id:'9', title:'10 Benefits of Artificial Intelligence: Transforming the Future',           category:{ name:'AI & automation' }, lastReviewedAt:'2026-01-28', views:177, slug:'10-benefits-ai' },
-];
+// Mock posts removed
 
 // ─── SMALL COMPONENTS ─────────────────────────────────────────────
 
@@ -117,11 +106,11 @@ export default function ContentDecay() {
       if (list.length > 0) {
         setPosts(normalize(list));
       } else {
-        setPosts(normalize(MOCK_POSTS));
+        setPosts([]);
       }
     } catch {
-      // fallback to mock
-      setPosts(normalize(MOCK_POSTS));
+      // fallback to empty
+      setPosts([]);
     } finally {
       setLoading(false);
     }
@@ -342,6 +331,12 @@ export default function ContentDecay() {
                     ))}
                   </tr>
                 ))
+              ) : posts.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="text-center py-10 text-gray-400 text-sm font-medium">
+                    Data not available
+                  </td>
+                </tr>
               ) : paginated.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="text-center py-10 text-gray-400 text-xs">
@@ -387,7 +382,7 @@ export default function ContentDecay() {
                       </td>
                       <td className="px-3 py-2.5">
                         <div className="flex items-center gap-1">
-                          {/* Mark reviewed */}
+                           {/* Mark reviewed */}
                           <button
                             onClick={() => markReviewed(p._id)}
                             title="Mark as reviewed today"
@@ -467,7 +462,11 @@ export default function ContentDecay() {
               <div className="text-[11px] text-gray-400">Stale + most viewed — review first</div>
             </div>
             <div className="flex flex-col gap-2">
-              {priority.length === 0 ? (
+              {posts.length === 0 ? (
+                <div className="text-center py-5 text-xs text-gray-400">
+                  Data not available
+                </div>
+              ) : priority.length === 0 ? (
                 <div className="text-center py-5 text-xs text-gray-400">
                   No stale posts — great work! 🎉
                 </div>
