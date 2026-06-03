@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/dashboard/blog",
+      "destination": "/some-page"
+    }
+  ]
+}
