@@ -200,6 +200,15 @@ export function useFormState(initial, options = {}) {
     setSaved(false);
   };
 
+  // Like setAll but does NOT mark the form as dirty. Use this for the
+  // initial load (server data hydrates the form) so the user only sees
+  // "Save Changes" enabled after they actually change something.
+  const replace = (val) => {
+    setData(val);
+    setDirty(false);
+    setSaved(false);
+  };
+
   const reset = (val = initial) => {
     setData(val);
     setDirty(false);
@@ -226,5 +235,5 @@ export function useFormState(initial, options = {}) {
     }
   };
 
-  return { data, dirty, saving, saved, error, set, setAll, save, reset };
+  return { data, dirty, saving, saved, error, set, setAll, replace, save, reset };
 }

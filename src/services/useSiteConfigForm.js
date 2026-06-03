@@ -22,7 +22,11 @@ export function useSiteConfigForm(initial, { section } = {}) {
       .then((cfg) => {
         if (!cfg || typeof cfg !== "object") return;
         const slice = section && cfg[section] ? cfg[section] : cfg;
-        ctl.setAll({ ...initial, ...slice });
+        // Use setData (NOT setAll) on initial load so we don't mark the
+        // form as "dirty" before the user has touched anything. setAll()
+        // sets dirty=true, which would make the Save button look enabled
+        // from the moment the page loads and confuse the user.
+        ctl.replace({ ...initial, ...slice });
       })
       .catch(() => null);
     // eslint-disable-next-line react-hooks/exhaustive-deps

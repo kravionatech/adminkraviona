@@ -1,5 +1,5 @@
 // src/pages/dashboard/blog/AddPost.jsx
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback,useEffect  } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';

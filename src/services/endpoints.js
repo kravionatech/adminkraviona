@@ -39,7 +39,9 @@ export const ENDPOINTS = {
     public:          `${P}/public/services`,
     publicNav:       `${P}/public/services/nav`,
     publicOne:       (slug) => `${P}/public/services/${slug}`,
-    list:            (q={}) => `/services${toQs(q)}`,
+    // Admin list = /v1/services (super_admin only, includes drafts).
+    list:            (q={}) => `${V}/services${toQs(q)}`,
+    one:             (id) => `${V}/services/${id}`,
     create:          `${V}/services`,
     update:          (id) => `${V}/services/${id}`,
     remove:          (id) => `${V}/services/${id}`,
@@ -51,6 +53,9 @@ export const ENDPOINTS = {
     public:          `${P}/public/portfolio`,
     publicFeatured:  `${P}/public/portfolio/featured`,
     publicOne:       (slug) => `${P}/public/portfolio/${slug}`,
+    // Admin list = /v1/portfolio (super_admin only, includes drafts/archived).
+    list:            (q={}) => `${V}/portfolio${toQs(q)}`,
+    one:             (id) => `${V}/portfolio/${id}`,
     create:          `${V}/portfolio`,
     update:          (id) => `${V}/portfolio/${id}`,
     remove:          (id) => `${V}/portfolio/${id}`,
@@ -60,6 +65,9 @@ export const ENDPOINTS = {
   team: {
     public:          `${P}/public/team`,
     publicOne:       (slug) => `${P}/public/team/${slug}`,
+    // Admin list = /v1/team (super_admin only, includes archived).
+    list:            (q={}) => `${V}/team${toQs(q)}`,
+    one:             (id) => `${V}/team/${id}`,
     create:          `${V}/team`,
     update:          (id) => `${V}/team/${id}`,
     remove:          (id) => `${V}/team/${id}`,
@@ -70,6 +78,9 @@ export const ENDPOINTS = {
   testimonials: {
     public:          `${P}/public/testimonials`,
     publicFeatured:  `${P}/public/testimonials/featured`,
+    // Admin list = /v1/testimonials (super_admin only, includes unapproved).
+    list:            (q={}) => `${V}/testimonials${toQs(q)}`,
+    one:             (id) => `${V}/testimonials/${id}`,
     create:          `${V}/testimonials`,
     update:          (id) => `${V}/testimonials/${id}`,
     approve:         (id) => `${V}/testimonials/${id}/approve`,
@@ -80,6 +91,9 @@ export const ENDPOINTS = {
   caseStudies: {
     public:          `${P}/public/case-studies`,
     publicOne:       (slug) => `${P}/public/case-studies/${slug}`,
+    // Admin list = /v1/case-studies (super_admin only, includes drafts/archived).
+    list:            (q={}) => `${V}/case-studies${toQs(q)}`,
+    one:             (id) => `${V}/case-studies/${id}`,
     create:          `${V}/case-studies`,
     update:          (id) => `${V}/case-studies/${id}`,
     remove:          (id) => `${V}/case-studies/${id}`,
@@ -88,6 +102,9 @@ export const ENDPOINTS = {
   // ── Pricing ─────────────────────────────────────────────────────────
   pricing: {
     public:          `${P}/public/pricing`,
+    // Admin list = /v1/pricing (super_admin only, includes inactive).
+    list:            (q={}) => `${V}/pricing${toQs(q)}`,
+    one:             (id) => `${V}/pricing/${id}`,
     create:          `${V}/pricing`,
     update:          (id) => `${V}/pricing/${id}`,
     remove:          (id) => `${V}/pricing/${id}`,
